@@ -36,14 +36,13 @@ Create `backend/` (FastAPI, SQLAlchemy 2 async + asyncpg, Alembic, pytest) and `
 - `feat(backend): add database models and first Alembic migration`: all tables listed in Notes, created in one migration.
 - `feat(frontend): add router, layout shell and API client`: pages stubbed, `fetch` wrapper with `credentials: "include"`.
 - `chore: add Dockerfiles, Caddyfile and Railway config`: backend Dockerfile runs `alembic upgrade head && uvicorn`; frontend Dockerfile builds Vite and serves `dist/` with Caddy, reverse-proxying `/api/*` and `/ws/*` to `backend.railway.internal:8000`.
-- `chore: add per-service railway.json with watch paths`: `backend/railway.json` watches `backend/**` and `frontend/railway.json` watches `frontend/**`, so a push only redeploys the service whose files changed.
 
 ### Notes
 
 - **One repo, auto-deploy on push.**
   - **Repo.** A single GitHub repo. In Railway, connect both the frontend and backend services to the same repo, with Root Directory `backend/` and `frontend/` respectively.
   - **Deploys.** Each service auto-deploys on every push to `main` (Railway's GitHub integration; no GitHub Actions needed).
-  - **Watch paths.** The watch paths in each `railway.json` mean that changing only `frontend/` does not redeploy the backend, and vice versa.
+  - **Watch paths.** Set in each service's Settings (Railway retired Config as Code, so there is no `railway.json`): `/backend/**` and `/frontend/**`. Changing only `frontend/` then does not redeploy the backend, and vice versa.
   - **Postgres** is a Railway database service, not deployed from the repo. Schema changes ship with the backend, because its start command runs `alembic upgrade head` first.
   - **Connecting the repo to Railway** is a one-time manual step in the Railway dashboard, done by the user. Railway needs GitHub access to the repo.
 
