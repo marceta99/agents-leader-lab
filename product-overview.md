@@ -139,7 +139,7 @@ A game ends as soon as any of these is true:
 - all actions are spent and nobody is carrying a chair;
 - every agent is waiting and nothing new is happening;
 - **10 minutes** have passed;
-- an agent has been asked **45 times** (protects against agents that only chat and burn API credit).
+- an agent has been asked **20 times** (protects against agents that only chat and burn API credit, which happens most once their actions run out).
 
 ---
 
@@ -216,16 +216,14 @@ Because every experiment plays on the same numbered layouts, **any two experimen
 | Agents know all goals | On / Off | **Off** |
 | Budget | Four numbers, each at most 12, total at least 16 | **6 / 6 / 6 / 6** |
 | Add a leader | On / Off | **Off** |
-| Runs | 1 to 25 (per group when a leader is added) | none |
+| Runs | Any number, 1 or more (per group when a leader is added) | none |
 | Leader prompts | The text each leader group is told | The defaults in section 3 |
 | Model | Claude Haiku / Sonnet / Opus | **Haiku** |
 | Spending cap | Dollar amount | **$5** |
 
-**Why up to 25 runs:** fewer than about 25 runs cannot reliably show a difference, even a large one. A few runs are fine for a look, not for a conclusion.
-
 **"Agents know all goals"** is the comparison setting. To show that leaders appear *because* nobody knows everything, you need games where everyone does. If leaders appear just as often there, hidden goals are not the reason.
 
-Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 45-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
+Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 20-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
 
 ### 5.3 Running
 

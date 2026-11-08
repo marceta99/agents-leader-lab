@@ -10,19 +10,18 @@ import './pages.css'
 // Default global settings (backend settings_store DEFAULTS); the backend re-validates with the live values.
 const BUDGET_MAX = 12
 const BUDGET_MIN_TOTAL = 16
-const MAX_RUNS = 25
 
 type Estimate = { runs_total: number; calls_estimate: number; usd_estimate: number }
 
 const isInt = (s: string) => /^\d+$/.test(s.trim())
 
 /** One form section: title and explanation on the left, controls on the right. */
-function Section({ id, title, intro, children }: { id: string; title: string; intro: ReactNode; children: ReactNode }) {
+function Section({ id, title, intro, children }: { id: string; title: string; intro?: ReactNode; children: ReactNode }) {
   return (
     <section className="fs" aria-labelledby={id}>
       <div className="fs-head">
         <h2 id={id}>{title}</h2>
-        <div className="fs-intro">{intro}</div>
+        {intro && <div className="fs-intro">{intro}</div>}
       </div>
       <div className="fs-body">{children}</div>
     </section>
@@ -80,7 +79,7 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const totalShort = sum < BUDGET_MIN_TOTAL
   const budgetError = cellErrors.some(Boolean) || totalShort
   const runsN = Number(runs)
-  const runsError = !isInt(runs) || runsN < 1 || runsN > MAX_RUNS ? `Enter a whole number from 1 to ${MAX_RUNS}.` : ''
+  const runsError = !isInt(runs) || runsN < 1 ? 'Enter a whole number, 1 or more.' : ''
   const capN = Number(cap)
   const capError = !(capN > 0) ? 'Enter an amount above $0, for example 5.' : ''
   const promptErrors = Object.fromEntries(
@@ -283,19 +282,9 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
           )}
         </Section>
 
-        <Section
-          id="s-runs"
-          title="Runs"
-          intro={
-            <p>
-              Why up to {MAX_RUNS}: fewer than about 25 runs cannot reliably show a difference, even a large one. A few
-              runs are fine for a look, not for a conclusion.
-            </p>
-          }
-        >
+        <Section id="s-runs" title="Runs">
           <Field
             label={addLeader ? 'Runs per group' : 'Runs'}
-            hint={`1 to ${MAX_RUNS}. Run 1 always plays layout 1, run 2 layout 2, so experiments compare directly.`}
             error={runs !== '' ? runsError : ''}
             className="runs-field"
           >
@@ -305,7 +294,6 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={MAX_RUNS}
                 placeholder="10"
                 value={runs}
                 onChange={(e) => setRuns(e.target.value)}

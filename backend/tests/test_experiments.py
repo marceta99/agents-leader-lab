@@ -20,7 +20,7 @@ async def test_budget_validation(auth_client, monkeypatch):
     for budget in ([13, 5, 5, 5], [5, 5, 5, 0], [5, 5, 5], [5, 5, 5, 5.5], [-1, 12, 5, 5]):
         r = await auth_client.post("/api/experiments", json={**BODY, "budget": budget})
         assert r.status_code == 422, (budget, r.text)
-    for bad in ({"runs": 0}, {"runs": 26}, {"model": "gpt-4"}, {"cap_usd": 0}):
+    for bad in ({"runs": 0}, {"runs": 1001}, {"model": "gpt-4"}, {"cap_usd": 0}):
         assert (await auth_client.post("/api/experiments", json={**BODY, **bad})).status_code == 422, bad
     r = await auth_client.post("/api/experiments", json={**BODY, "budget": [12, 4, 0, 0]})
     assert r.status_code == 200, r.text

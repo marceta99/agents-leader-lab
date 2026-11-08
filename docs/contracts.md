@@ -227,7 +227,7 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 
 - **Name:** generated from the config (goals known/hidden, budget, leader groups); there is no name field.
 - **Leader prompts:** only with a leader. Missing or blank groups get the default; each at most 1000 characters.
-- **Validation:** budget has 4 ints in `0..budget_max_per_agent` with sum `>= budget_min_total`; runs in `1..max_runs`; model in `settings.models`; cap > 0.
+- **Validation:** budget has 4 ints in `0..budget_max_per_agent` with sum `>= budget_min_total`; runs at least 1 (`max_runs`, default 1000, is only a typo guard); model in `settings.models`; cap > 0.
 - **Rows:** all `runs` rows are created at launch. For each layout `i` in `1..runs`:
   - one run per group (`none` only, or `none, free, directive, nondirective` with a leader);
   - each run gets a random `seed` (`runs.seed`), also written to `run_started` and `runs.result`.
