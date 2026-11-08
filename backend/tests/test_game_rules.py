@@ -12,23 +12,23 @@ RING = [(4, 4), (5, 4), (6, 4), (4, 5), (6, 5), (4, 6), (5, 6), (6, 6)]
 
 
 def test_goals_ring_detected():
-    assert goals_met(chairs(RING, upside=True)) == {"circle": True, "upside_down": True, "one_zone": True, "touching": True}
+    assert goals_met(chairs(RING, upside=True)) == {"square": True, "upside_down": True, "one_zone": True, "touching": True}
     assert goals_met(chairs(RING))["upside_down"] is False
 
 
 def test_goals_2x4_block_not_circle():
     met = goals_met(chairs([(x, y) for y in (0, 1) for x in range(4)]))
-    assert met == {"circle": False, "upside_down": False, "one_zone": True, "touching": True}
+    assert met == {"square": False, "upside_down": False, "one_zone": True, "touching": True}
 
 
 def test_zone_and_touching_checks():
-    # ring straddling zones 0 and 1: circle + touching, but not one zone
+    # ring straddling zones 0 and 1: square + touching, but not one zone
     straddle = [(x + 2, y) for x, y in [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (0, 2), (1, 2), (2, 2)]]
     met = goals_met(chairs(straddle))
-    assert met["circle"] and met["touching"] and not met["one_zone"]
+    assert met["square"] and met["touching"] and not met["one_zone"]
     # two separate pairs in one zone: one zone, not touching
     met = goals_met(chairs([(0, 0), (1, 0), (3, 3), (3, 2)]))
-    assert met["one_zone"] and not met["touching"] and not met["circle"]
+    assert met["one_zone"] and not met["touching"] and not met["square"]
     # diagonal does not count as touching
     assert not goals_met(chairs([(0, 0), (1, 1)]))["touching"]
 

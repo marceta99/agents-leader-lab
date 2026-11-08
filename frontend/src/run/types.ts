@@ -1,14 +1,14 @@
 // Event + state types for the run viewer. Mirrors docs/contracts.md ("Events", "Run result", Runs endpoints).
 
 export type Cell = [number, number]
-export type GoalId = 'circle' | 'upside_down' | 'one_zone' | 'touching'
+export type GoalId = 'square' | 'upside_down' | 'one_zone' | 'touching'
 export type GoalsMet = Record<GoalId, boolean>
 export type Style = 'directive' | 'non_directive' | 'other'
 export type AgentMode = 'idle' | 'walking' | 'carrying' | 'flipping'
 
-export const GOAL_IDS: GoalId[] = ['circle', 'upside_down', 'one_zone', 'touching']
+export const GOAL_IDS: GoalId[] = ['square', 'upside_down', 'one_zone', 'touching']
 export const GOAL_TEXT: Record<GoalId, string> = {
-  circle: 'Arrange the chairs in a circle.',
+  square: 'Arrange the chairs in a square.',
   upside_down: 'Turn all the chairs upside down.',
   one_zone: 'Move all the chairs to one part of the room (one zone).',
   touching: 'Make all the chairs touch each other.',
@@ -18,7 +18,7 @@ const ZONE_NAMES = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 export const goalText = (g: GoalId, zone?: number | null) =>
   g === 'one_zone' && zone != null ? `Move all the chairs to zone ${zone} (the ${ZONE_NAMES[zone]} part of the room).` : GOAL_TEXT[g]
 export const GOAL_SHORT: Record<GoalId, string> = {
-  circle: 'Circle',
+  square: 'Square',
   upside_down: 'Upside down',
   one_zone: 'One zone',
   touching: 'Touching',

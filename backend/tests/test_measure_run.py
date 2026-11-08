@@ -18,10 +18,10 @@ LABELS = {
 
 def events():
     ev = [{"seq": 1, "t": 0, "type": "run_started", "data": {"agents": [
-        {"name": n, "cell": [0, 0], "goal": "circle", "budget": b, "is_leader": lead, "leader_style": "directive" if lead else None}
+        {"name": n, "cell": [0, 0], "goal": "square", "budget": b, "is_leader": lead, "leader_style": "directive" if lead else None}
         for n, b, lead in AGENTS]}}]
     ev += [{"seq": i + 2, "t": t, "type": "message", "data": {"agent": a, "id": mid, "text": txt}} for i, (mid, t, a, txt) in enumerate(MSGS)]
-    met = {"circle": True, "upside_down": True, "one_zone": True, "touching": True}
+    met = {"square": True, "upside_down": True, "one_zone": True, "touching": True}
     ev.append({"seq": 9, "t": 300000, "type": "run_ended", "data": {"reason": "solved", "solved": True, "met": met, "duration_ms": 300000}})
     return ev
 
@@ -69,7 +69,7 @@ async def test_measure_run_end_to_end_fixture():
     r = await measure_run(events=events(), decisions=DECISIONS, label_fn=label_fn, replay_fn=make_fake_replay(),
                           min_influence=0.5, budget_left_usd=None)
     assert (r["solved"], r["duration_ms"], r["end_reason"]) == (True, 300000, "solved")
-    assert r["goals_met"]["circle"] is True
+    assert r["goals_met"]["square"] is True
     assert r["leader_agent"] == "Sky" and r["richest_agent"] == "Sam" and r["leader_is_richest"] is False
     assert r["measured_leader"] == "Sky"
     assert r["influence"] == {"Sam": 0.0, "Sky": 1.6667, "Sol": 0.0, "Sage": 0.0}

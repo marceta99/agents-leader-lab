@@ -57,7 +57,7 @@ function move(t: number, agent: string, chair: number, at: Cell, dest: Cell): nu
   return t
 }
 
-const NONE = { circle: false, upside_down: false, one_zone: false, touching: false }
+const NONE = { square: false, upside_down: false, one_zone: false, touching: false }
 
 push(0, 'run_started', {
   layout_no: 3,
@@ -68,7 +68,7 @@ push(0, 'run_started', {
   time_limit_ms: 600_000,
   know_all_goals: false,
   agents: [
-    { name: 'Sam', cell: [0, 0], goal: 'circle', budget: 5, is_leader: false, leader_style: null },
+    { name: 'Sam', cell: [0, 0], goal: 'square', budget: 5, is_leader: false, leader_style: null },
     { name: 'Sky', cell: [7, 0], goal: 'upside_down', budget: 6, is_leader: true, leader_style: 'directive' },
     { name: 'Sol', cell: [0, 7], goal: 'touching', budget: 4, is_leader: false, leader_style: null },
     { name: 'Sage', cell: [7, 7], goal: 'one_zone', budget: 5, is_leader: false, leader_style: null },

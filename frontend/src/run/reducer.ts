@@ -1,6 +1,12 @@
-import type { AgentState, BoardState, Cell, ChairState, GoalsMet, RunEvent } from './types'
+import type { AgentState, BoardState, Cell, ChairState, GoalId, GoalsMet, RunEvent } from './types'
 
-const NO_GOALS: GoalsMet = { circle: false, upside_down: false, one_zone: false, touching: false }
+const NO_GOALS: GoalsMet = { square: false, upside_down: false, one_zone: false, touching: false }
+
+// Runs before the rename stored the square goal as "circle".
+const met = (m: GoalsMet): GoalsMet => {
+  const { circle, ...rest } = m as GoalsMet & { circle?: boolean }
+  return { ...NO_GOALS, ...(circle === undefined ? {} : { square: circle }), ...rest }
+}
 
 interface Step {
   from: Cell
@@ -37,7 +43,7 @@ export function stateAt(events: RunEvent[], tMs: number): BoardState {
             name: a.name,
             cell: [...a.cell],
             pos: [...a.cell],
-            goal: a.goal,
+            goal: a.goal === ('circle' as GoalId) ? 'square' : a.goal,
             budget: a.budget,
             isLeader: a.is_leader,
             leaderStyle: a.leader_style,
@@ -124,14 +130,14 @@ export function stateAt(events: RunEvent[], tMs: number): BoardState {
         break
       }
       case 'goals':
-        s.goalsMet = { ...NO_GOALS, ...e.data.met }
+        s.goalsMet = met(e.data.met)
         break
       case 'cost':
         s.costUsd = e.data.usd
         break
       case 'run_ended':
         s.ended = e.data
-        s.goalsMet = { ...NO_GOALS, ...e.data.met }
+        s.goalsMet = met(e.data.met)
         break
       // unknown event types from a newer backend are ignored
     }

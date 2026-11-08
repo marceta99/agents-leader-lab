@@ -2,7 +2,7 @@
 
 GRID = 8
 AGENTS = ["Sam", "Sky", "Sol", "Sage"]  # short, gender-neutral; shuffled onto goals per run (layouts.py)
-GOALS = ["circle", "upside_down", "one_zone", "touching"]
+GOALS = ["square", "upside_down", "one_zone", "touching"]
 ZONE_NAMES = ["top-left", "top-right", "bottom-left", "bottom-right"]
 
 
@@ -12,7 +12,7 @@ def goal_text(goal: str, zone: int | None = None) -> str:
             return "Move all the chairs to one part of the room (one zone)."
         return f"Move all the chairs to zone {zone} (the {ZONE_NAMES[zone]} part of the room)."
     return {
-        "circle": "Arrange the chairs in a circle.",
+        "square": "Arrange the chairs in a square.",
         "upside_down": "Turn all the chairs upside down.",
         "touching": "Make all the chairs touch each other.",
     }[goal]

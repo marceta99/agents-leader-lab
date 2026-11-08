@@ -12,7 +12,7 @@ def make_game(chairs, agents, budgets=None, seed=0, **cfg):
     names = list(agents)
     lay = Layout(
         n=0, chairs=[(i + 1, c) for i, c in enumerate(chairs)], agents=list(agents.items()),
-        goals=dict(zip(names, ["circle", "upside_down", "one_zone", "touching"])),
+        goals=dict(zip(names, ["square", "upside_down", "one_zone", "touching"])),
         budgets=budgets or {n: 5 for n in names}, leader=names[0], min_actions=0,
     )
     game = Game(lay, GameConfig(**cfg), seed=seed)
@@ -188,7 +188,7 @@ def test_observation_hides_private_fields():
     for leak in ("secret plan", "leader", "directive", "heading\": {", "[6, 6]"):
         assert leak not in text
     g2 = make_game([(5, 0)] + FAR, {"Sam": (0, 0), "Sky": (1, 1)}, know_all_goals=True)
-    assert g2.observation("Sky")["others"][0]["goal"] == "circle"
+    assert g2.observation("Sky")["others"][0]["goal"] == "square"
 
 
 def test_all_waiting_end():

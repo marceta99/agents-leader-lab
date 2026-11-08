@@ -23,7 +23,7 @@ The product rules are in `product-overview.md` and the build plan is in `plan-ag
 
   | Goal id | Text shown to agents |
   |---|---|
-  | `circle` | "Arrange the chairs in a circle." |
+  | `square` | "Arrange the chairs in a square." |
   | `upside_down` | "Turn all the chairs upside down." |
   | `one_zone` | "Move all the chairs to zone {z} (the {top-left\|top-right\|bottom-left\|bottom-right} part of the room)." The target zone `z` is fixed per layout. |
   | `touching` | "Make all the chairs touch each other." |
@@ -68,7 +68,7 @@ game.chat -> list[dict]      # [{"id": 1, "agent": "Sam", "text": "...", "t": 12
 - `min_actions: int`, in 14..16, counted for a ring inside the target zone
 - `zone: int`, the zone the `one_zone` goal names
 
-What is fixed by `n` (`LAYOUT_VERSION = 2`): chair cells, one start cell per goal, the target zone, and the roles. `roles(n)` gives `(leader goal, rich goal)`: the leader goal cycles `circle, upside_down, one_zone, touching` every layout, and the rich goal is offset by 1, 2, 3, 0 in blocks of 4 layouts, so layouts 1..16 hold every pair once. The largest budget goes to the rich goal and the rest follow in goal order. What the run seed changes: which name plays which goal, and the listing order. So a goal keeps its start cell, budget and leader role whatever name plays it.
+What is fixed by `n` (`LAYOUT_VERSION = 2`): chair cells, one start cell per goal, the target zone, and the roles. `roles(n)` gives `(leader goal, rich goal)`: the leader goal cycles `square, upside_down, one_zone, touching` every layout, and the rich goal is offset by 1, 2, 3, 0 in blocks of 4 layouts, so layouts 1..16 hold every pair once. The largest budget goes to the rich goal and the rest follow in goal order. What the run seed changes: which name plays which goal, and the listing order. So a goal keeps its start cell, budget and leader role whatever name plays it.
 
 ### Decision semantics (engine)
 
@@ -111,7 +111,7 @@ What is fixed by `n` (`LAYOUT_VERSION = 2`): chair cells, one start cell per goa
     "holding": 5,                      // chair id or null
     "heading": {"kind": "move", "chair": 5, "cell": [1, 1]},   // or null
     "budget_left": 4,
-    "goal": "circle",
+    "goal": "square",
     "goal_met": false
   },
   "others": [{"name": "Sam", "cell": [0, 0], "holding": null, "budget_left": 6, "goal": null}],   // goal only when know_all_goals
@@ -141,7 +141,7 @@ Wire shape: `{"seq": 17, "t": 41200, "type": "chair_taken", "data": {...}}`.
 | `message` | `{"agent", "id", "text"}` | Chat, visible to all agents. |
 | `notes` | `{"agent", "text"}` | Viewer-only. |
 | `decision` | `{"agent", "n", "kind", "chair", "cell", "outcome", "reason"}` | Emitted by the runner after each LLM decision. `outcome`: `ok`, `invalid`, `skipped_invalid`, `skipped_chose` (for `wait`/`continue` when idle), `ignored_busy`. |
-| `goals` | `{"met": {"circle": bool, "upside_down": bool, "one_zone": bool, "touching": bool}}` | Emitted at start and whenever any value changes. |
+| `goals` | `{"met": {"square": bool, "upside_down": bool, "one_zone": bool, "touching": bool}}` | Emitted at start and whenever any value changes. |
 | `cost` | `{"usd"}` | Cumulative run cost, emitted by the runner after LLM calls. Optional for the viewer. |
 | `run_ended` | `{"reason", "solved", "met": {...}, "duration_ms", "completion"}` | Always the last event. `completion` (0..1) = `1 - actions_left / min_actions`, clamped; `actions_left` = chairs not yet upside down + chairs not on the best ring in the target zone. 1.0 when solved. |
 
@@ -195,7 +195,7 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 ```json
 {
   "solved": true, "completion": 1.0, "seed": 1288342217, "duration_ms": 312000, "end_reason": "solved",
-  "goals_met": {"circle": true, "upside_down": true, "one_zone": true, "touching": true},
+  "goals_met": {"square": true, "upside_down": true, "one_zone": true, "touching": true},
   "leader_agent": "Sky",           // agent told to lead; null in the none group
   "richest_agent": "Sam",          // unique max budget; null on a tie (e.g. 6/6/6/6)
   "leader_is_richest": false,      // null if either is null

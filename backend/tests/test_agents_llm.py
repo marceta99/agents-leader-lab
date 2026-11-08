@@ -15,7 +15,7 @@ from app.pricing import cost_usd
 
 BANNED = re.compile(r"\b(lead\w*|team\w*|coordinat\w*|manag\w*|boss\w*)", re.I)
 CFG = {"cell_ms": 2000, "flip_ms": 2000, "time_limit_ms": 600_000, "heartbeat_ms": 10_000}
-GOALS = {"Sam": "circle", "Sky": "upside_down", "Sol": "one_zone", "Sage": "touching"}
+GOALS = {"Sam": "square", "Sky": "upside_down", "Sol": "one_zone", "Sage": "touching"}
 
 
 def prompt(**kw):
@@ -44,9 +44,9 @@ def test_prompt_has_no_leadership_words():
     variants = [prompt(), prompt(know_all_goals=True, others_goals=GOALS)]
     for p in variants:
         assert not BANNED.findall(p), BANNED.findall(p)
-    assert goal_text("circle") in variants[1] and goal_text("touching") in variants[1]
+    assert goal_text("square") in variants[1] and goal_text("touching") in variants[1]
     assert "zone 2 (the bottom-left part of the room)" in variants[1]
-    assert goal_text("circle") not in variants[0]
+    assert goal_text("square") not in variants[0]
     assert "You can see everyone's remaining actions" in variants[0]
 
 

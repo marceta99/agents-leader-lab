@@ -38,7 +38,7 @@ The experiment is a cooperative puzzle adapted from an agile training exercise. 
 
 | Goal | Met when |
 |---|---|
-| Arrange the chairs in a circle | Every chair has exactly two chair neighbours and they form one closed ring (with 8 chairs, a 3x3 ring with an empty centre) |
+| Arrange the chairs in a square | Every chair has exactly two chair neighbours and they form one closed outline (with 8 chairs, a hollow 3x3 square with an empty centre) |
 | Turn all chairs upside down | Every chair is upside down |
 | Move all chairs to zone N | All chairs are in the zone the goal names (for example "zone 2, the bottom-left part"). The zone is picked at random per layout. |
 | Make all chairs touch each other | All chairs form one connected group |
@@ -148,7 +148,7 @@ A game ends as soon as any of these is true:
 
 By default, nobody is told to lead and the experiment watches whether a leader emerges on its own. The user can also switch on **Add a leader** to test how different ways of leading affect the group.
 
-When **Add a leader** is on, one of the four agents is told it is the leader. Which goal the leader plays rotates from layout to layout: circle, upside down, zone, touching, and again. Only that agent is told it is the leader. **The other three are not told**, so if they follow it, it is because of what it does, not because they were told to.
+When **Add a leader** is on, one of the four agents is told it is the leader. Which goal the leader plays rotates from layout to layout: square, upside down, zone, touching, and again. Only that agent is told it is the leader. **The other three are not told**, so if they follow it, it is because of what it does, not because they were told to.
 
 The experiment then automatically runs **four groups**, with the same settings and on the same starting layouts:
 
