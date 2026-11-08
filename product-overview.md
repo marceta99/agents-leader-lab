@@ -150,20 +150,20 @@ By default, nobody is told to lead and the experiment watches whether a leader e
 
 When **Add a leader** is on, one of the four agents is told it is the leader. Which goal the leader plays rotates from layout to layout: square, upside down, zone, touching, and again. Only that agent is told it is the leader. **The other three are not told**, so if they follow it, it is because of what it does, not because they were told to.
 
-The experiment then automatically runs **four groups**, with the same settings and on the same starting layouts:
+The experiment then automatically runs **two groups**, with the same settings and on the same starting layouts:
 
 | Group | What the leader agent is told (default; editable when creating the experiment) |
 |---|---|
-| **No leader** | Nothing. A normal game, for comparison. |
-| **Free leader** | "You are the leader. Decide how to lead." |
 | **Directive leader** | "Lead by giving clear instructions to the others." |
 | **Non-directive leader** | "Lead by asking questions, proposing ideas and summarising, without telling anyone what to do." |
 
-Each group gets the chosen number of runs, so the experiment costs four times as much. The cost estimate shows this before launch.
+Each group gets the chosen number of runs, so the experiment costs twice as much. The cost estimate shows this before launch.
+
+The no-leader comparison is a separate experiment with **Add a leader** off and the same settings. Run *n* always plays layout *n*, so both experiments play the same layouts and compare directly.
 
 The rich goal rotates too, offset from the leader goal, so over 16 layouts every pairing of leader goal and rich goal appears once. In layouts 13 to 16 the leader is also the richest agent. Every run records whether they were, and results can be filtered by it, to tell whether an effect came from the budget or from the role.
 
-The results show the four groups side by side:
+The results show the two groups side by side:
 
 - the leader agent's **influence share**, against the 25% chance line (the main result);
 - **solve rate**, **average completion** and **time to solve**;
@@ -217,7 +217,7 @@ Users see how often each style appears and who used it. If agents steer the grou
 | Term | Meaning |
 |---|---|
 | **Run** | One game: 4 agents, one starting layout, up to 10 minutes. |
-| **Experiment** | One set of settings x N runs. With **Add a leader** on, it is four groups x N runs. |
+| **Experiment** | One set of settings x N runs. With **Add a leader** on, it is two groups (directive, non-directive) x N runs. |
 | **Layout** | The starting positions of the chairs and agents. Layouts are numbered and shared by everyone: run 1 always uses layout 1, run 2 layout 2, and so on. |
 
 Because every experiment plays on the same numbered layouts, **any two experiments can be compared directly**. To compare two budget setups, run two experiments that differ only in the budget.
@@ -285,7 +285,7 @@ A single form:
 
 1. Choose whether **Agents know all goals**.
 2. Enter the **budget** for the four agents.
-3. Choose whether to **Add a leader**. If on, the form shows that four groups will run and lets you edit what each leader is told.
+3. Choose whether to **Add a leader**. If on, the form shows that two groups will run and lets you edit what each leader is told.
 4. Choose the number of **runs**.
 5. Choose the **model**.
 6. Review the generated **name**, the **estimated cost**, set the **spending cap**, and press **Launch**.
@@ -321,7 +321,7 @@ The main screen of the product:
 
 - Share of runs that had a leader, solve rate and average game length.
 - **How often the measured leader was the agent with the biggest budget**, shown against the 25% chance line. Far above 25% means budget decides who leads.
-- With a leader added: the four groups side by side (section 3).
+- With a leader added: the two groups side by side (section 3).
 - Style mix of the messages.
 - **Export** of all data as CSV and JSON.
 
@@ -349,7 +349,7 @@ Other users' experiments are private and are not visible to admins.
 | Fixed budget levels (e.g. 3/3/3/3 or 5/3/2/2) | User enters each agent's budget | Lets users explore any spread of resources |
 | Everyone sees everyone's remaining budget | Same: everyone sees everyone's remaining actions | Budgets are an open fact, as in the original design |
 | "Followed within next 2 turns" | "Followed within next 2 decisions" | There are no turns in real time |
-| Style test: one agent with a secret preferred zone and a style instruction | Optional leader with a style instruction, no secret zone; four groups run automatically | Simpler, and still compares directive, non-directive and free leadership against no leader |
+| Style test: one agent with a secret preferred zone and a style instruction | Optional leader with a style instruction, no secret zone; directive and non-directive groups run automatically | Simpler; the no-leader baseline is a separate experiment on the same layouts |
 | Experiments with several conditions side by side | One set of settings per experiment, on shared numbered layouts | Any two experiments can be compared directly, and the form stays simple |
 | Replication on a second model provider | Anthropic models only | Other providers may come later |
 | Hand-checking the instruction finder on 60 messages | Done outside the platform, using the export | Not a user-facing feature |
@@ -378,4 +378,4 @@ If time runs short, features are cut in this order: **demo gallery**, then **pub
 - **Response speed.** In real time, an agent whose answer arrives a second later starts walking a second later. With the fast default walking speed this can decide who reaches a contested chair first; admins can slow walking down.
 - **Runs are not exactly repeatable.** The same layout and settings will not play out identically, because the AI's answers vary.
 - **Influence through actions is not measured.** If agents copy what another agent does without being told to, that is visible in the playback but not counted as leadership.
-- **Cost.** A real-time game on a bigger board asks agents many more questions than the original turn-based design, and an experiment with a leader runs four groups. The estimate and spending cap keep it under the user's control.
+- **Cost.** A real-time game on a bigger board asks agents many more questions than the original turn-based design, and an experiment with a leader runs two groups. The estimate and spending cap keep it under the user's control.

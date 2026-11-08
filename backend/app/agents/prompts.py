@@ -2,7 +2,7 @@
 
 from app.game.board import goal_text
 
-# Defaults; an experiment can override them (config["leader_prompts"]).
+# Defaults; an experiment can override them (config["leader_prompts"]). "free" is only used by older experiments.
 LEADER_LINES: dict[str, str] = {
     "free": "You are the leader. Decide how to lead.",
     "directive": "Lead by giving clear instructions to the others.",

@@ -173,7 +173,7 @@ export default function LandingPage() {
               <h3>
                 {e.name}
                 <span>
-                  {modelLabel(e.model)}, {runs.length} runs{e.add_leader ? ', with a leader in three of four groups' : ''}
+                  {modelLabel(e.model)}, {runs.length} runs{e.add_leader ? ', with an agent told to lead' : ''}
                 </span>
               </h3>
               <ul className="l-prints">

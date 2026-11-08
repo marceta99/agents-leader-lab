@@ -227,7 +227,7 @@ async def test_rate_limit_is_retried_later_not_invalid(auth_client, monkeypatch)
 
 async def test_auth_error_stops_experiment(auth_client, monkeypatch):
     def behave(agent, kw):
-        if LEADER_LINES["free"] in kw["system"]:
+        if LEADER_LINES["nondirective"] in kw["system"]:
             raise anthropic.AuthenticationError(
                 "bad key", response=httpx2.Response(401, request=httpx2.Request("POST", "https://x")), body=None)
         return Decision(action="wait")
@@ -236,9 +236,8 @@ async def test_auth_error_stops_experiment(auth_client, monkeypatch):
     exp, runs = await wait_exp(await create(auth_client, add_leader=True))
     assert exp.status == "stopped" and exp.stop_reason == "invalid_key"
     by_group = {r.group: r for r in runs}
-    assert by_group["none"].status == "finished"
-    assert by_group["free"].status == "stopped" and by_group["free"].end_reason == "stopped"
-    assert by_group["directive"].status == "stopped" and by_group["nondirective"].status == "stopped"
+    assert by_group["directive"].status == "finished"
+    assert by_group["nondirective"].status == "stopped" and by_group["nondirective"].end_reason == "stopped"
 
 
 async def test_cap_stops_experiment_keeps_finished(auth_client, monkeypatch):
@@ -326,4 +325,5 @@ async def test_custom_leader_prompt_reaches_only_the_leader(auth_client, monkeyp
     assert started["seed"] == directive.seed and started["target_zone"] in range(4)
     with_custom = {p for p in systems if custom in p}
     assert len(with_custom) == 1 and with_custom.pop().endswith(custom)  # one leader, one run (directive)
-    assert sum(LEADER_LINES["free"] in p for p in set(systems)) == 1 and leader
+    assert sum(LEADER_LINES["nondirective"] in p for p in set(systems)) == 1 and leader
+    assert not any(LEADER_LINES["free"] in p for p in systems)  # no free-leader group any more

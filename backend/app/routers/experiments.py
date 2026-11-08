@@ -18,7 +18,7 @@ from app.settings_store import get_settings
 
 router = APIRouter()
 
-LEADER_GROUPS = ["none", "free", "directive", "nondirective"]
+LEADER_GROUPS = ["directive", "nondirective"]  # with a leader; the no-leader baseline is its own experiment
 
 
 MAX_LEADER_PROMPT = 1000
@@ -41,17 +41,18 @@ def experiment_name(c: ConfigIn) -> str:
     b = c.budget
     budget = f"Equal budget {b[0]}" if len(set(b)) == 1 else "Budget " + "-".join(str(v) for v in sorted(b, reverse=True))
     goals = "Goals known" if c.know_all_goals else "Goals hidden"
-    return f"{goals} · {budget} · {'Leader groups' if c.add_leader else 'No leader'}"
+    return f"{goals} · {budget} · {'Directive vs non-directive leader' if c.add_leader else 'No leader'}"
 
 
 def _leader_prompts(body: ExperimentIn) -> dict[str, str] | None:
     if not body.add_leader:
         return None
     given = body.leader_prompts or {}
-    if set(given) - set(LEADER_LINES):
-        raise HTTPException(422, "Leader prompts can only be set for free, directive and nondirective")
+    if set(given) - set(LEADER_GROUPS):
+        raise HTTPException(422, "Leader prompts can only be set for directive and nondirective")
     out = {}
-    for g, default in LEADER_LINES.items():
+    for g in LEADER_GROUPS:
+        default = LEADER_LINES[g]
         text = (given.get(g) or "").strip() or default
         if len(text) > MAX_LEADER_PROMPT:
             raise HTTPException(422, f"Each leader prompt must be at most {MAX_LEADER_PROMPT} characters")

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useMe } from '../auth'
-import { errorText, experimentName, GROUP_LABELS, LEADER_DEFAULTS, LEADER_MAX, leaderText, MODELS, money } from '../format'
+import { errorText, experimentName, GROUP_LABELS, LEADER_DEFAULTS, LEADER_MAX, LEADER_STYLES, MODELS, money } from '../format'
 import RequireAuth from '../RequireAuth'
 import Field from '../ui/Field'
 import './pages.css'
@@ -62,7 +62,9 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const [knowAll, setKnowAll] = useState(false)
   const [budget, setBudget] = useState(['6', '6', '6', '6'])
   const [addLeader, setAddLeader] = useState(false)
-  const [leaderPrompts, setLeaderPrompts] = useState<Record<string, string>>(LEADER_DEFAULTS)
+  const [leaderPrompts, setLeaderPrompts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(LEADER_STYLES.map((g) => [g, LEADER_DEFAULTS[g]])),
+  )
   const [runs, setRuns] = useState('')
   const [model, setModel] = useState(MODELS[0].id)
   const [cap, setCap] = useState('5')
@@ -100,7 +102,7 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
     cap_usd: capN,
   }
   const configKey = JSON.stringify(config)
-  const localRunsTotal = runsError ? null : runsN * (addLeader ? 4 : 1)
+  const localRunsTotal = runsError ? null : runsN * (addLeader ? LEADER_STYLES.length : 1)
   const name = budgetError ? '—' : experimentName(config)
 
   // Debounced cost estimate, refreshed whenever the config changes.
@@ -225,8 +227,10 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
           title="Leader"
           intro={
             <p>
-              Off, the experiment watches whether a leader emerges on its own. On, one agent is told to lead. Which goal
-              gets the leader moves from layout to layout. The other three are not told.
+              Off, the experiment watches whether a leader emerges on its own. On, one agent is told to lead, once by
+              giving instructions and once by asking and proposing. Which goal gets the leader moves from layout to layout.
+              The other three are not told. For a no-leader baseline, run a separate experiment without a leader: it plays
+              the same layouts.
             </p>
           }
         >
@@ -234,21 +238,17 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
             <input type="checkbox" role="switch" checked={addLeader} onChange={(e) => setAddLeader(e.target.checked)} />
             <span>
               <strong>Add a leader</strong>
-              <span className="muted">Runs four groups on the same layouts.</span>
+              <span className="muted">Runs a directive and a non-directive group on the same layouts.</span>
             </span>
           </label>
           {addLeader && (
             <div className="groups-preview">
               <p className="groups-note">
-                <span className="chip">Cost ×4</span> Each group plays every run, so the experiment costs four times as
-                much. What the leader agent is told, added at the end of its instructions. Edit any of them:
+                <span className="chip">Cost ×2</span> Each group plays every run, so the experiment costs twice as
+                much. What the leader agent is told, added at the end of its instructions. Edit either of them:
               </p>
               <ol className="group-list">
-                <li>
-                  <strong>{GROUP_LABELS.none}</strong>
-                  <span>{leaderText('none')}</span>
-                </li>
-                {Object.keys(LEADER_DEFAULTS).map((g) => (
+                {LEADER_STYLES.map((g) => (
                   <li key={g}>
                     <Field
                       label={GROUP_LABELS[g]}

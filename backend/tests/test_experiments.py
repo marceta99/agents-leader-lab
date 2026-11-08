@@ -32,19 +32,19 @@ async def test_budget_validation(auth_client, monkeypatch):
 async def test_estimate(auth_client):
     one = (await auth_client.post("/api/experiments/estimate", json={**BODY, "runs": 2})).json()
     four = (await auth_client.post("/api/experiments/estimate", json={**BODY, "runs": 2, "add_leader": True})).json()
-    assert one["runs_total"] == 2 and four["runs_total"] == 8
-    assert four["calls_estimate"] == 4 * one["calls_estimate"] and four["usd_estimate"] > one["usd_estimate"] > 0
+    assert one["runs_total"] == 2 and four["runs_total"] == 4
+    assert four["calls_estimate"] == 2 * one["calls_estimate"] and four["usd_estimate"] > one["usd_estimate"] > 0
     assert (await auth_client.post("/api/experiments/estimate", json={**BODY, "budget": [13, 5, 5, 5]})).status_code == 422
 
 
-async def test_leader_creates_4_groups_x_n_runs(auth_client, monkeypatch):
+async def test_leader_creates_2_groups_x_n_runs(auth_client, monkeypatch):
     monkeypatch.setattr(scheduler, "launch", lambda exp_id: None)
     await add_key()
     d = (await auth_client.post("/api/experiments", json={**BODY, "runs": 3, "add_leader": True})).json()
-    assert d["runs_total"] == 12
-    assert Counter(r["group"] for r in d["runs"]) == {"none": 3, "free": 3, "directive": 3, "nondirective": 3}
+    assert d["runs_total"] == 6
+    assert Counter(r["group"] for r in d["runs"]) == {"directive": 3, "nondirective": 3}
     assert [(r["layout_no"], r["group"]) for r in d["runs"][:4]] == [
-        (1, "none"), (1, "free"), (1, "directive"), (1, "nondirective")]
+        (1, "directive"), (1, "nondirective"), (2, "directive"), (2, "nondirective")]
     assert sorted({r["layout_no"] for r in d["runs"]}) == [1, 2, 3]
 
 
@@ -56,13 +56,13 @@ async def test_name_seeds_and_leader_prompts(auth_client, monkeypatch):
     body = {**BODY, "budget": [9, 5, 3, 3], "know_all_goals": True, "add_leader": True,
             "leader_prompts": {"directive": "  Tell the others exactly what to do.  "}}
     d = (await auth_client.post("/api/experiments", json=body)).json()
-    assert d["name"] == "Goals known · Budget 9-5-3-3 · Leader groups"
+    assert d["name"] == "Goals known · Budget 9-5-3-3 · Directive vs non-directive leader"
     lp = d["config"]["leader_prompts"]
-    assert lp["directive"] == "Tell the others exactly what to do." and lp["free"].startswith("You are the leader")
+    assert lp["directive"] == "Tell the others exactly what to do." and lp["nondirective"].startswith("Lead by asking") and "free" not in lp
     async with SessionLocal() as db:
         seeds = [r.seed for r in (await db.scalars(select(Run).where(Run.experiment_id == d["id"]))).all()]
-    assert len(seeds) == 4 and all(isinstance(s, int) for s in seeds) and len(set(seeds)) == 4
-    bad = {**body, "leader_prompts": {"boss": "x"}}
+    assert len(seeds) == 2 and all(isinstance(s, int) for s in seeds) and len(set(seeds)) == 2
+    bad = {**body, "leader_prompts": {"free": "x"}}
     assert (await auth_client.post("/api/experiments", json=bad)).status_code == 422
     listed = (await auth_client.get("/api/experiments")).json()
     assert [e["id"] for e in listed] == [d["id"], d["id"] - 1]  # newest first
@@ -90,11 +90,11 @@ async def test_max_parallel_runs(auth_client, monkeypatch):
     await add_key()
     exp, runs = await wait_exp(await create(auth_client, runs=3, add_leader=True), statuses=("finished",))
     assert peak[0] == 2
-    assert all(r.status == "finished" for r in runs) and len(runs) == 12
+    assert all(r.status == "finished" for r in runs) and len(runs) == 6
     expected = sorted(runs, key=lambda r: (r.layout_no, scheduler.GROUP_ORDER[r.group]))
     # runs start in (layout, group) order; two that acquire a slot together may record in either order
     assert all(abs(order.index(r.id) - i) <= 1 for i, r in enumerate(expected))
-    assert [(r.layout_no, r.group) for r in expected[:4]] == [(1, "none"), (1, "free"), (1, "directive"), (1, "nondirective")]
+    assert [(r.layout_no, r.group) for r in expected[:4]] == [(1, "directive"), (1, "nondirective"), (2, "directive"), (2, "nondirective")]
 
 
 async def test_delete_removes_everything(auth_client, monkeypatch):

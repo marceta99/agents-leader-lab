@@ -10,7 +10,7 @@ MEASURE_FACTOR = 1.5  # measurement v2 (5+5 replays, prohibitions, plans); v1 wa
 
 
 def estimate(config: dict, settings: dict) -> dict:
-    groups = 4 if config.get("add_leader") else 1
+    groups = 2 if config.get("add_leader") else 1  # directive + non-directive
     runs = config["runs"] * groups
     calls = runs * 4 * CALLS_PER_AGENT
     out_tokens = calls * OUTPUT_TOKENS_PER_CALL * EFFORT_OUTPUT_FACTOR.get(settings.get("effort", "low"), 1.0)

@@ -28,7 +28,7 @@ The product rules are in `product-overview.md` and the build plan is in `plan-ag
   | `one_zone` | "Move all the chairs to zone {z} (the {top-left\|top-right\|bottom-left\|bottom-right} part of the room)." The target zone `z` is fixed per layout. |
   | `touching` | "Make all the chairs touch each other." |
 
-- **Groups:** `none | free | directive | nondirective` (older data may hold `solo`, which is no longer created).
+- **Groups:** `none` (no leader) or `directive | nondirective` (with a leader). Older data may hold `free` or `solo`, which are no longer created.
 - **Adjacency:** distance and adjacency are always orthogonal (up, down, left, right). Diagonals never count.
 
 ## Game engine API (`backend/app/game/`, pure Python, no I/O)
@@ -184,7 +184,6 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 
   | Leader style | Extra line |
   |---|---|
-  | free | "You are the leader. Decide how to lead." |
   | directive | "Lead by giving clear instructions to the others." |
   | nondirective | "Lead by asking questions, proposing ideas and summarising, without telling anyone what to do." |
 
@@ -239,7 +238,7 @@ Results measured with version 1 (before 2026-11-08) have one instruction per mes
 ```json
 {"name": "Goals hidden · Equal budget 6 · No leader", "know_all_goals": false, "budget": [6, 6, 6, 6],
  "add_leader": false, "runs": 10, "model": "claude-haiku-5-5", "cap_usd": 5.0,
- "leader_prompts": null,          // with a leader: {"free": "...", "directive": "...", "nondirective": "..."}
+ "leader_prompts": null,          // with a leader: {"directive": "...", "nondirective": "..."}
  "settings": {...global snapshot...}, "layout_version": 2}
 ```
 
@@ -247,7 +246,7 @@ Results measured with version 1 (before 2026-11-08) have one instruction per mes
 - **Leader prompts:** only with a leader. Missing or blank groups get the default; each at most 1000 characters.
 - **Validation:** budget has 4 ints in `0..budget_max_per_agent` with sum `>= budget_min_total`; runs at least 1 (`max_runs`, default 1000, is only a typo guard); model in `settings.models`; cap > 0.
 - **Rows:** all `runs` rows are created at launch. For each layout `i` in `1..runs`:
-  - one run per group (`none` only, or `none, free, directive, nondirective` with a leader);
+  - one run per group (`none` only, or `directive, nondirective` with a leader; the no-leader baseline is a separate experiment);
   - each run gets a random `seed` (`runs.seed`), also written to `run_started` and `runs.result`.
 
 ## REST + WebSocket API

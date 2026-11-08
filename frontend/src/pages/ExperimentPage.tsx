@@ -435,9 +435,9 @@ function ResultsSection({ exp }: { exp: Detail }) {
 
           {exp.config.add_leader && (
             <div className="panel compare-sheet">
-              <h3 className="compare-title">The four groups side by side</h3>
+              <h3 className="compare-title">The groups side by side</h3>
               <div className="compare">
-                {LEADER_GROUPS.map((g) => (
+                {LEADER_GROUPS.filter((g) => results.groups[g]).map((g) => (
                   <GroupColumn key={g} g={g} s={results.groups[g]} prompts={exp.config.leader_prompts} />
                 ))}
               </div>
@@ -605,7 +605,7 @@ function Experiment() {
           </div>
           <div>
             <dt>Leader</dt>
-            <dd>{c.add_leader ? 'Added, 4 groups' : 'None'}</dd>
+            <dd>{c.add_leader ? `Added, ${new Set(exp.runs.map((r) => r.group)).size} groups` : 'None'}</dd>
           </div>
           <div>
             <dt>Runs</dt>

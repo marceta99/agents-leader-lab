@@ -51,6 +51,8 @@ export const LEADER_DEFAULTS: Record<string, string> = {
   nondirective: 'Lead by asking questions, proposing ideas and summarising, without telling anyone what to do.',
 }
 export const LEADER_MAX = 1000
+// Groups a new leader experiment runs ("none" and "free" exist only in older experiments).
+export const LEADER_STYLES = ['directive', 'nondirective']
 
 /** What the leader agent is told in each group: the experiment's own prompts, else the defaults. */
 export const leaderText = (g: string, prompts?: Record<string, string> | null) =>
@@ -60,7 +62,7 @@ export const leaderText = (g: string, prompts?: Record<string, string> | null) =
 export function experimentName(c: { know_all_goals: boolean; budget: number[]; add_leader: boolean }) {
   const b = c.budget
   const budget = new Set(b).size === 1 ? `Equal budget ${b[0]}` : `Budget ${[...b].sort((x, y) => y - x).join('-')}`
-  return `${c.know_all_goals ? 'Goals known' : 'Goals hidden'} · ${budget} · ${c.add_leader ? 'Leader groups' : 'No leader'}`
+  return `${c.know_all_goals ? 'Goals known' : 'Goals hidden'} · ${budget} · ${c.add_leader ? 'Directive vs non-directive leader' : 'No leader'}`
 }
 
 const STATUS_LABELS: Record<string, string> = {
