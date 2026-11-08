@@ -49,7 +49,7 @@ type GroupStats = {
 }
 type Results = { groups: Record<string, GroupStats>; overall: GroupStats; excluded: number }
 
-const ACTIVE = ['queued', 'running', 'measuring']
+const ACTIVE = ['queued', 'running', 'measuring', 'paused']
 const LEADER_GROUPS = ['none', 'free', 'directive', 'nondirective']
 const FILTERS = [
   ['any', 'All runs'],
@@ -461,6 +461,7 @@ function Experiment() {
   const launched = !!(useLocation().state as { launched?: boolean } | null)?.launched
   const [exp, setExp] = useState<Detail | null>(null)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const load = useCallback(
     () =>
@@ -484,14 +485,18 @@ function Experiment() {
     return () => clearInterval(t)
   }, [active, load])
 
-  async function stop() {
+  async function post(action: 'stop' | 'pause' | 'resume') {
+    setBusy(true)
     try {
-      await api(`/api/experiments/${id}/stop`, { method: 'POST' })
+      await api(`/api/experiments/${id}/${action}`, { method: 'POST' })
       await load()
     } catch (e) {
       setError(errorText(e))
+    } finally {
+      setBusy(false)
     }
   }
+  const stop = () => post('stop')
   async function remove() {
     try {
       await api(`/api/experiments/${id}`, { method: 'DELETE' })
@@ -522,6 +527,8 @@ function Experiment() {
     )
 
   const c = exp.config
+  const paused = exp.status === 'paused'
+  const finishing = paused && exp.runs.some((r) => r.status === 'running' || r.status === 'measuring')
   const runsBlock = <RunsTable exp={exp} />
   const resultsBlock = <ResultsSection exp={exp} />
 
@@ -536,6 +543,14 @@ function Experiment() {
         </p>
       )}
 
+      {paused && (
+        <p className="banner" role="status">
+          {finishing
+            ? 'Pausing. The run that is playing finishes and is measured; no new run starts until you resume.'
+            : 'Paused. No run is playing. Resume to continue with the next run.'}
+        </p>
+      )}
+
       <header className="ph exp-ph">
         <div>
           <StatusBadge status={exp.status} />
@@ -545,6 +560,16 @@ function Experiment() {
           </p>
         </div>
         <div className="actions">
+          {(exp.status === 'queued' || exp.status === 'running') && (
+            <button type="button" onClick={() => post('pause')} disabled={busy}>
+              Pause experiment
+            </button>
+          )}
+          {paused && (
+            <button type="button" className="primary" onClick={() => post('resume')} disabled={busy}>
+              Resume experiment
+            </button>
+          )}
           {active && (
             <ConfirmButton
               label="Stop experiment"

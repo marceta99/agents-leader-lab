@@ -3,7 +3,7 @@ import random
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scheduler
@@ -145,14 +145,35 @@ async def get_experiment(exp_id: int, user: User = Depends(current_user), db: As
     return _detail(*await _own(db, exp_id, user))
 
 
+@router.post("/api/experiments/{exp_id}/pause", status_code=204)
+async def pause_experiment(exp_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    """Runs already playing finish (with measurement); no new run starts until resume."""
+    exp, _ = await _own(db, exp_id, user)
+    if exp.status in ("queued", "running") and not exp.stop_requested:
+        await db.execute(update(Experiment).where(Experiment.id == exp_id, Experiment.status.in_(("queued", "running")))
+                         .values(status="paused"))
+        await db.commit()
+    return Response(status_code=204)
+
+
+@router.post("/api/experiments/{exp_id}/resume", status_code=204)
+async def resume_experiment(exp_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    exp, _ = await _own(db, exp_id, user)
+    if exp.status == "paused" and not exp.stop_requested:
+        exp.status = "queued"
+        await db.commit()
+        scheduler.launch(exp_id)  # no-op while the old worker is still winding down: its loop picks the runs up
+    return Response(status_code=204)
+
+
 @router.post("/api/experiments/{exp_id}/stop", status_code=204)
 async def stop_experiment(exp_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     exp, _ = await _own(db, exp_id, user)
-    if exp.status in ("queued", "running") and not exp.stop_requested:
+    if exp.status in ("queued", "running", "paused") and not exp.stop_requested:
         exp.stop_requested = True
         exp.stop_reason = exp.stop_reason or "user_stopped"
         await db.commit()
-    if exp.status in ("queued", "running") and not scheduler.is_active(exp_id):
+    if exp.status in ("queued", "running", "paused") and not scheduler.is_active(exp_id):
         await scheduler.finalize(exp_id)  # nothing is playing it (e.g. lost worker): settle it now
     return Response(status_code=204)
 

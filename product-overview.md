@@ -246,6 +246,7 @@ Fixed for users, adjustable by admins: how much the model thinks before answerin
 - At most **3 runs play at the same time**, to stay within the API usage limits of the user's key.
 - Experiments keep running when the user closes the tab.
 - The user can **Stop** an experiment at any time (finished runs are kept) and **delete** their experiments.
+- The user can **Pause** an experiment: the run that is playing finishes and is measured, and no new run starts until **Resume**. A paused experiment can also be stopped.
 
 ### 5.4 When things go wrong
 
@@ -293,10 +294,10 @@ A single form:
 
 ### 6.5 Experiment page
 
-- Status: queued, running, measuring, finished, stopped or failed.
+- Status: queued, running, paused, measuring, finished, stopped or failed.
 - Progress: runs done out of total, money spent so far against the cap.
 - A list of runs with their group (when a leader was added), status, whether the puzzle was solved, how complete it got and who led. **Completion** is the share of the minimum work done: 1 minus the actions still needed (chairs not yet upside down, plus chairs not on the best ring in the named zone), divided by the actions the layout needed at the start.
-- **Stop** and **Delete** buttons.
+- **Pause** / **Resume**, **Stop** and **Delete** buttons.
 
 ### 6.6 Watching a run
 

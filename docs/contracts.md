@@ -276,7 +276,9 @@ All paths are same-origin. Auth is an httpOnly cookie `session` (a JWT). Errors 
 | `POST /api/experiments` | `{know_all_goals, budget, add_leader, runs, model, cap_usd, leader_prompts?}` | `ExperimentDetail`. 400 if there is no key. |
 | `GET /api/experiments` | | `[ExperimentSummary]`, newest first |
 | `GET /api/experiments/{id}` | | `ExperimentDetail` |
-| `POST /api/experiments/{id}/stop` | | 204 |
+| `POST /api/experiments/{id}/pause` | | 204. Runs already playing finish (with measurement); no new run starts; status `paused`. |
+| `POST /api/experiments/{id}/resume` | | 204. Back to `queued`; the scheduler continues with the next queued run. |
+| `POST /api/experiments/{id}/stop` | | 204 (also from `paused`) |
 | `DELETE /api/experiments/{id}` | | 204 (stops first if running) |
 | `GET /api/experiments/{id}/results?richest=any\|leader_is_richest\|leader_not_richest` | | `ExperimentResults` |
 | `GET /api/experiments/{id}/export.json` | | Full JSON (config, runs with result, events, decisions without any key) |

@@ -7,7 +7,7 @@ from app import runner, scheduler
 from app.db import SessionLocal
 from app.models import Run
 from app.settings_store import DEFAULTS
-from tests.test_runner import add_key, create, fast, state, use_client, wait_all, wait_exp  # noqa: F401
+from tests.test_runner import add_key, create, fast, state, use_client, wait_all, wait_exp, wait_for  # noqa: F401
 
 BODY = {"budget": [5, 5, 5, 5], "runs": 1, "model": "claude-haiku-5-5", "cap_usd": 5.0}
 
@@ -124,3 +124,51 @@ async def test_other_user_gets_404(auth_client, admin_client, monkeypatch):
     _, runs = await state(exp_id)
     assert (await admin_client.get(f"/api/runs/{runs[0].id}")).status_code == 404
     assert (await auth_client.get(f"/api/runs/{runs[0].id}")).json()["is_owner"] is True
+
+
+async def test_pause_lets_the_current_run_finish_then_resume_plays_the_rest(auth_client, monkeypatch):
+    monkeypatch.setitem(DEFAULTS, "parallel_runs", 1)
+    gate = asyncio.Event()
+    started = []
+
+    async def fake_execute(run_id, **kw):
+        started.append(run_id)
+        async with SessionLocal() as db:
+            await db.execute(update(Run).where(Run.id == run_id).values(status="running"))
+            await db.commit()
+        if len(started) == 1:
+            await gate.wait()  # the first run is still playing when the pause arrives
+        async with SessionLocal() as db:
+            await db.execute(update(Run).where(Run.id == run_id).values(status="finished", end_reason="solved"))
+            await db.commit()
+
+    monkeypatch.setattr(runner, "execute_run", fake_execute)
+    await add_key()
+    exp_id = await create(auth_client, runs=3)
+    await wait_for(lambda: asyncio.sleep(0, bool(started)))
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/pause")).status_code == 204
+    gate.set()
+
+    async def paused_and_idle():
+        exp, runs = await state(exp_id)
+        return exp.status == "paused" and not scheduler.is_active(exp_id) and [r.status for r in runs]
+
+    assert await wait_for(paused_and_idle) == ["finished", "queued", "queued"]  # current run finished, no new one
+    assert len(started) == 1
+    assert (await auth_client.get(f"/api/experiments/{exp_id}")).json()["status"] == "paused"
+
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/resume")).status_code == 204
+    exp, runs = await wait_exp(exp_id, statuses=("finished",))
+    assert [r.status for r in runs] == ["finished"] * 3 and len(started) == 3
+
+
+async def test_stop_while_paused(auth_client, monkeypatch):
+    monkeypatch.setattr(scheduler, "launch", lambda exp_id: None)  # nothing plays: pause and stop act on the rows
+    await add_key()
+    exp_id = await create(auth_client, runs=2)
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/pause")).status_code == 204
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/resume")).status_code == 204
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/pause")).status_code == 204
+    assert (await auth_client.post(f"/api/experiments/{exp_id}/stop")).status_code == 204
+    exp, runs = await state(exp_id)
+    assert exp.status == "stopped" and [r.status for r in runs] == ["stopped", "stopped"]

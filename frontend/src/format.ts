@@ -68,6 +68,7 @@ export function experimentName(c: { know_all_goals: boolean; budget: number[]; a
 const STATUS_LABELS: Record<string, string> = {
   queued: 'Queued',
   running: 'Running',
+  paused: 'Paused',
   measuring: 'Measuring',
   finished: 'Finished',
   stopped: 'Stopped',
