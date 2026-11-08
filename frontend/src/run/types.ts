@@ -19,18 +19,18 @@ export const GOAL_SHORT: Record<GoalId, string> = {
   one_zone: 'One zone',
   touching: 'Touching',
 }
-// Same hex as --z1..--z4 in index.css (three.js can't read CSS vars).
-export const ZONE_COLORS = ['#e9c46a', '#8ecae6', '#b5e48c', '#f4a3a8']
+// Same hex as the tokens in index.css / docs/design.md (three.js can't read CSS vars).
+export const ZONE_COLORS = ['#e3b341', '#7cc3e6', '#9ccb7a', '#ee9aa2']
 export const STYLE_COLORS: Record<Style, string> = {
-  directive: '#d9480f',
-  non_directive: '#1971c2',
-  other: '#868e96',
+  directive: '#c2410c',
+  non_directive: '#1d6fd1',
+  other: '#8a8fa3',
 }
 export const AGENT_COLORS: Record<string, string> = {
-  Ada: '#e63946',
-  Bo: '#1d3557',
-  Cy: '#7b2cbf',
-  Dee: '#2a9d8f',
+  Ada: '#e4572e',
+  Bo: '#2e86ab',
+  Cy: '#8e5cd9',
+  Dee: '#17a398',
 }
 
 export interface StartAgent {

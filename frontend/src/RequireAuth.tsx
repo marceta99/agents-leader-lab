@@ -6,7 +6,12 @@ import { useMe } from './auth'
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const { me, loading } = useMe()
   const location = useLocation()
-  if (loading) return <p className="muted">Loading…</p>
+  if (loading)
+    return (
+      <p className="muted" role="status" style={{ padding: '48px 0' }}>
+        Loading…
+      </p>
+    )
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <>{children}</>
 }

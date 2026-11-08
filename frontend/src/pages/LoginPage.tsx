@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { refreshMe } from '../auth'
+import { errorText } from '../format'
+import AuthLayout from '../ui/AuthLayout'
+import Field, { PasswordInput } from '../ui/Field'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -20,38 +23,48 @@ export default function LoginPage() {
       await refreshMe()
       navigate(from ?? '/experiments')
     } catch (err) {
-      setError((err as Error).message)
+      const msg = errorText(err)
+      setError(msg === 'Wrong email or password' ? 'Wrong email or password. Check both and try again.' : msg)
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="panel" style={{ maxWidth: 460, margin: '0 auto' }}>
+    <AuthLayout
+      title="Back to the room."
+      lede="Log in to launch experiments and read who led. Experiments keep running while you are away."
+      facts={[
+        'Your experiments are private.',
+        'You pay Anthropic directly for every call.',
+        'Forgot your password? Create a new account; there is no reset yet.',
+      ]}
+    >
       <h2>Log in</h2>
-      <form className="form" onSubmit={submit}>
-        <label>
-          Email
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button className="primary" disabled={busy}>
+      <form className="stack-form" onSubmit={submit}>
+        <Field label="Email">
+          {(c) => (
+            <input {...c} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Password" error={error}>
+          {(c) => (
+            <PasswordInput
+              {...c}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          )}
+        </Field>
+        <button className="primary block" disabled={busy}>
           {busy ? 'Logging in…' : 'Log in'}
         </button>
-        <p className="muted">
-          No account? <Link to="/signup">Sign up</Link>
-        </p>
       </form>
-    </div>
+      <p className="auth-switch">
+        No account yet? <Link to="/signup">Sign up</Link>
+      </p>
+    </AuthLayout>
   )
 }

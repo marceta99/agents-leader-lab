@@ -2,31 +2,63 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useMe } from '../auth'
-import { errorText, modelLabel, money, statusLabel, type ExperimentSummary } from '../format'
+import { dateLabel, errorText, modelLabel, money, type ExperimentSummary } from '../format'
 import RequireAuth from '../RequireAuth'
+import { Meter } from '../ui/Charts'
+import { StatusBadge } from '../ui/Labels'
 import './pages.css'
 
-function NewExperimentButton() {
-  const { me } = useMe()
-  if (me?.has_key)
+function NewExperimentButton({ hasKey }: { hasKey: boolean }) {
+  if (hasKey)
     return (
       <Link to="/experiments/new" className="button primary">
         New experiment
       </Link>
     )
   return (
-    <span className="row">
-      <button className="primary" disabled>
+    <div className="ph-action-note">
+      <button className="primary" disabled aria-describedby="no-key-note">
         New experiment
       </button>
-      <span className="hint">
+      <p id="no-key-note">
         <Link to="/settings/key">Add your Anthropic API key</Link> to run experiments.
-      </span>
-    </span>
+      </p>
+    </div>
+  )
+}
+
+function Row({ e }: { e: ExperimentSummary }) {
+  return (
+    <li>
+      <Link to={`/experiments/${e.id}`} className="exp-row">
+        <span className="exp-name">
+          <strong>{e.name}</strong>
+          <span className="muted">
+            {modelLabel(e.model)}
+            {e.add_leader ? ', with a leader' : ''}. Created {dateLabel(e.created_at)}
+          </span>
+        </span>
+        <span className="exp-status">
+          <StatusBadge status={e.status} />
+        </span>
+        <span className="exp-progress">
+          <span className="exp-figure tnum">
+            {e.runs_done} of {e.runs_total} runs
+          </span>
+          <Meter value={e.runs_done} max={e.runs_total} label={`${e.name}: runs done`} />
+        </span>
+        <span className="exp-spent">
+          <span className="exp-figure tnum">{money(e.spent_usd)}</span>
+          <span className="muted tnum">of {money(e.cap_usd)} cap</span>
+        </span>
+      </Link>
+    </li>
   )
 }
 
 function ExperimentList() {
+  const { me } = useMe()
+  const hasKey = !!me?.has_key
   const [list, setList] = useState<ExperimentSummary[] | null>(null)
   const [error, setError] = useState('')
 
@@ -37,52 +69,65 @@ function ExperimentList() {
   }, [])
 
   return (
-    <div className="page">
-      <div className="spread">
-        <h1>Experiments</h1>
-        <NewExperimentButton />
-      </div>
-      <div className="panel">
-        {error && <p className="error">{error}</p>}
-        {!list && !error && <p className="muted">Loading…</p>}
-        {list?.length === 0 && <p className="muted">No experiments yet.</p>}
-        {list && list.length > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Runs</th>
-                  <th>Spent / cap</th>
-                  <th>Model</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((e) => (
-                  <tr key={e.id}>
-                    <td>
-                      <Link to={`/experiments/${e.id}`}>{e.name}</Link>
-                    </td>
-                    <td>
-                      <span className={`badge ${e.status}`}>{statusLabel(e.status)}</span>
-                    </td>
-                    <td>
-                      {e.runs_done} / {e.runs_total}
-                    </td>
-                    <td>
-                      {money(e.spent_usd)} / {money(e.cap_usd)}
-                    </td>
-                    <td>{modelLabel(e.model)}</td>
-                    <td>{new Date(e.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+    <div className="app-page">
+      <header className="ph">
+        <div>
+          <h1>Experiments</h1>
+          <p className="lede">Each experiment plays the chairs game on numbered layouts and measures who led.</p>
+        </div>
+        <NewExperimentButton hasKey={hasKey} />
+      </header>
+
+      {error && (
+        <div className="panel problem" role="alert">
+          <p>Your experiments could not be loaded: {error}</p>
+          <button onClick={() => location.reload()}>Try again</button>
+        </div>
+      )}
+
+      {!list && !error && (
+        <div className="panel exp-list" aria-busy="true">
+          <p className="sr-only" role="status">
+            Loading experiments…
+          </p>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton-row" aria-hidden="true">
+              <span className="skeleton" style={{ width: '40%' }} />
+              <span className="skeleton" style={{ width: '22%' }} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {list?.length === 0 && (
+        <div className="panel empty">
+          <h2>No experiments yet.</h2>
+          <p>
+            Create your first one: pick a budget for the four agents, choose how many runs, and launch. You will see
+            who led, and whether the richest agent was the one in charge.
+          </p>
+          {hasKey ? (
+            <Link to="/experiments/new" className="button primary">
+              New experiment
+            </Link>
+          ) : (
+            <>
+              <p className="muted">First, add the Anthropic API key the experiments will run on.</p>
+              <Link to="/settings/key" className="button primary">
+                Add API key
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {list && list.length > 0 && (
+        <ul className="panel exp-list" aria-label="Your experiments">
+          {list.map((e) => (
+            <Row key={e.id} e={e} />
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

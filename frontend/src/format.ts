@@ -26,10 +26,10 @@ export type RunSummary = {
   cost_usd: number
 }
 
-export const MODELS: { id: string; label: string; hint: string }[] = [
-  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', hint: 'cheapest' },
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', hint: 'about 20× the cost of Haiku' },
-  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', hint: 'about 40× the cost of Haiku' },
+export const MODELS: { id: string; label: string; hint: string; cost: string; blurb: string }[] = [
+  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', hint: 'cheapest', cost: '1×', blurb: 'Fast and cheap. Right for a first look.' },
+  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', hint: 'about 20× the cost of Haiku', cost: '≈20×', blurb: 'Stronger reasoning, about 20 times the cost of Haiku.' },
+  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', hint: 'about 40× the cost of Haiku', cost: '≈40×', blurb: 'The most capable, about 40 times the cost of Haiku.' },
 ]
 
 export const modelLabel = (id: string) => MODELS.find((m) => m.id === id)?.label ?? id
@@ -60,6 +60,21 @@ const STATUS_LABELS: Record<string, string> = {
   failed: 'Failed',
 }
 export const statusLabel = (s: string) => STATUS_LABELS[s] ?? s
+
+// Why an experiment stopped, and what to do about it.
+const STOP_REASONS: Record<string, string> = {
+  user_stopped: 'You stopped it. Finished runs are kept.',
+  cap_reached: 'It reached its spending cap. Finished runs are kept; raise the cap in a new experiment to run more.',
+  key_deleted: 'Your API key was deleted. Add a key, then launch a new experiment.',
+  invalid_key: 'Anthropic rejected your API key. Replace it on the API key page, then launch a new experiment.',
+  out_of_credit: 'Your Anthropic account ran out of credit. Add credit at console.anthropic.com, then launch a new experiment.',
+}
+export const stopReasonText = (r: string) => STOP_REASONS[r] ?? r.replace(/_/g, ' ')
+
+export const AGENT_COLORS: Record<string, string> = { Ada: 'var(--ada)', Bo: 'var(--bo)', Cy: 'var(--cy)', Dee: 'var(--dee)' }
+
+export const dateLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
 export const GOAL_TEXT: Record<string, string> = {
   circle: 'Arrange the chairs in a circle.',

@@ -1,0 +1,95 @@
+/* drei <Html> overlays for Room3D (run viewer + landing hero). */
+
+
+.r3-agent-label,
+.r3-chair-label,
+.r3-bubble-anchor {
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.r3-agent-label span {
+  display: block;
+  color: #fff;
+  font: 600 12px/1.2 var(--font-text);
+  padding: 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px -2px rgba(28, 24, 56, 0.5);
+}
+
+.r3-chair-label {
+  min-width: 18px;
+  text-align: center;
+  font: 700 11px/16px var(--font-text);
+  color: var(--ink);
+  background: rgba(247, 248, 250, 0.92);
+  border-radius: 999px;
+  padding: 0 5px;
+  box-shadow: 0 1px 3px rgba(28, 24, 56, 0.2);
+}
+
+.r3-chair-label.flipped {
+  background: var(--ink);
+  color: #fff;
+}
+
+.r3-bubble-anchor {
+  position: relative;
+}
+
+.r3-bubble {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: normal;
+  width: max-content;
+  max-width: 200px;
+  font: 13px/1.35 var(--font-text);
+  color: var(--ink);
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 7px 10px;
+  box-shadow: var(--shadow-lift);
+  animation: r3-pop 180ms var(--ease-out);
+}
+
+.r3-bubble-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.r3-bubble b {
+  font-weight: 700;
+}
+
+@keyframes r3-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.96);
+  }
+}
+
+@media (max-width: 600px) {
+  .r3-bubble {
+    max-width: 150px;
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+  .r3-bubble-text {
+    -webkit-line-clamp: 2;
+  }
+  .r3-agent-label span {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  .r3-agent-label.hero,
+  .r3-bubble-anchor.hero {
+    display: none;
+  }
+}
+
