@@ -86,7 +86,7 @@ function RoomFallback() {
   )
 }
 
-export default function Hero(props: { loggedIn: boolean; loading: boolean; watchHref: string }) {
+export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
   const reduced = useReducedMotion()
   const section = useRef<HTMLElement>(null)
   const [active, setActive] = useState(true)
@@ -132,9 +132,6 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean; watch
             style={props.loading ? { visibility: 'hidden' } : undefined}
           >
             {props.loggedIn ? 'Go to experiments' : 'Start an experiment'}
-          </Link>
-          <Link to={props.watchHref} className="button big">
-            Watch a run
           </Link>
         </div>
       </div>

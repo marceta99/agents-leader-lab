@@ -31,7 +31,7 @@ const QUESTIONS = [
 const STEPS = [
   [
     'Four agents, four goals',
-    'Sam, Sky, Sol and Sage share one room with eight chairs, which stands in for a shared codebase. Each gets its own goal, such as “Turn all the chairs upside down,” and its own budget of actions. By default nobody knows the others’ goals.',
+    'Sam, Sky, Sol and Sage share one room with eight chairs, which stands in for a shared codebase. Each gets its own goal, such as “Turn all the chairs upside down,” and its own budget of actions.',
   ],
   [
     'They talk and work as equals',
@@ -60,8 +60,6 @@ export default function LandingPage() {
       .catch(() => setDemos([])) // gallery is optional; hide it on error
   }, [])
 
-  const firstRun = demos.find((d) => d.runs.length)?.runs[0]
-  const watchHref = firstRun ? `/runs/${firstRun.id}` : '/runs/demo'
   const primary = me ? (
     <Link to="/experiments" className="button big invert">
       Go to experiments
@@ -74,7 +72,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing">
-      <Hero loggedIn={!!me} loading={loading} watchHref={watchHref} />
+      <Hero loggedIn={!!me} loading={loading} />
 
       <section className="l-wrap l-question" aria-labelledby="q-title">
         <div className="l-question-intro">
@@ -214,9 +212,6 @@ export default function LandingPage() {
           </p>
           <div className="hero-cta">
             {primary}
-            <Link to={watchHref} className="button big ghost-invert">
-              Watch a run
-            </Link>
           </div>
         </div>
       </section>
