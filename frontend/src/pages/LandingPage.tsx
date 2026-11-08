@@ -11,27 +11,39 @@ import { AGENT_COLORS } from '../run/types'
 type Demo = { experiment: ExperimentSummary; runs: RunSummary[] }
 
 const QUESTIONS = [
-  ['When', 'do leaders appear?', 'We compare games where each agent knows only its own goal with games where everyone knows all four.'],
-  ['Who', 'becomes the leader?', 'We check whether the agent with the biggest budget leads more often than chance, which is 25% with four agents.'],
-  ['How', 'do they lead?', 'We tell one agent to lead by giving orders, by asking and proposing, or its own way, and compare how the group responds.'],
+  [
+    'When',
+    'does a leader appear?',
+    'Coordination roles tend to arise where information is spread out. We compare agents that each know only their own goal with agents that know all four goals.',
+  ],
+  [
+    'Who',
+    'becomes the leader?',
+    'Others tend to depend on whoever holds the resources. We test whether the agent with the largest action budget leads more often than chance, which is 25% with four agents.',
+  ],
+  [
+    'How',
+    'does it lead?',
+    'Directive leaders decide and assign; non-directive ones frame, propose, ask and summarise. We record which styles leaders use unprompted, and test each one by telling an agent to lead in it and comparing the group with a team that has no leader.',
+  ],
 ]
 
 const STEPS = [
   [
-    'Four agents get hidden goals',
-    'Sam, Sky, Sol and Sage each get one goal for the eight chairs, such as “Turn all the chairs upside down.” Nobody sees the others’ goals, but everyone sees how many actions each one has left.',
+    'Four agents, four goals',
+    'Sam, Sky, Sol and Sage share one room with eight chairs, which stands in for a shared codebase. Each gets its own goal, such as “Turn all the chairs upside down,” and its own budget of actions. By default nobody knows the others’ goals.',
   ],
   [
-    'They talk and move chairs',
-    'There are no turns. Agents walk two seconds per cell, carry or flip chairs, and post in one shared chat. Every move or flip costs one action.',
+    'They talk and work as equals',
+    'Nobody is put in charge. There are no turns: agents walk, carry or flip chairs, and post in one shared chat. Every move or flip costs one action.',
   ],
   [
     'The game ends',
-    'It stops when all four goals are met, the actions run out, or ten minutes pass. The goals only look like they clash: a ring of upside-down chairs inside one zone meets all four.',
+    'It stops when all four goals are met, the actions run out, the agents only talk without acting, or time runs out. The goals only look like they clash: a hollow square of upside-down chairs in the named zone meets all four.',
   ],
   [
     'We measure influence',
-    'A model finds every instruction in the chat, checks whether it was followed, and replays the decision without the message to see whether it mattered.',
+    'A model finds every instruction, prohibition and proposed plan in the chat, checks whose actions followed, and replays those decisions with and without the message.',
   ],
 ]
 
@@ -66,12 +78,22 @@ export default function LandingPage() {
 
       <section className="l-wrap l-question" aria-labelledby="q-title">
         <div className="l-question-intro">
-          <h2 id="q-title">In July 2026, 1,200 agents organised themselves</h2>
+          <h2 id="q-title">Four teams, four agents, one codebase</h2>
           <p>
-            They were meant to be isolated. They found a way to talk, and one agent ended up assigning work to hundreds
-            of others. Each agent knew only its own task, and the one in charge had a much bigger budget.
+            Organisations split project work among specialist teams, each with its own goal. Picture a software project
+            where four teams each deploy an AI agent: one builds a new feature, one keeps the tests passing, one fixes
+            security vulnerabilities, one keeps the documentation current. The goals should complement each other, but
+            all four agents change the same code, so one agent’s change can undo another’s work.
           </p>
-          <p>We rebuilt that situation at a small scale so you can test it, safely and as often as you like.</p>
+          <p>
+            Agent systems built by one team usually put someone in charge: an orchestrator, a manager, or a fixed pipeline
+            of roles. When each team sets up its own agent, nobody is in charge, so the agents have to coordinate as
+            equals, by talking and adapting to each other.
+          </p>
+          <p>
+            <strong>Do they rebuild direct supervision on their own?</strong> Does one agent start directing the others,
+            and if so, when, which agent, and in what style?
+          </p>
         </div>
         <dl className="l-questions">
           {QUESTIONS.map(([word, rest, check]) => (
@@ -83,6 +105,28 @@ export default function LandingPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="l-wrap l-why" aria-labelledby="w-title">
+        <h2 id="w-title">The risk is unplanned influence</h2>
+        <div className="l-why-text">
+          <p>
+            An emergent leader is not harmful in itself; it may help the group succeed. The concern is influence nobody
+            planned: the leader steers the others’ actions, so its mistakes or misaligned goals spread through the group,
+            and oversight built around the designed structure does not see it.
+          </p>
+          <p>
+            It has already happened. In an incident documented by METR, agents meant to be isolated organised themselves,
+            and one came to assign work to hundreds of others. The case here is milder: the channel is intended, the
+            leader is not. The aim is not to prevent emergent leadership but to learn what causes it, so deployers can
+            anticipate it before they deploy instead of discovering it afterwards.
+          </p>
+          <p>
+            That incident combined many conditions. We vary two that deployers set and that every multi-team project has,
+            each one separately: <strong>information spread out</strong>, where each agent holds only its own goal, and{' '}
+            <strong>uneven resources</strong>, where one agent gets a much larger budget than the rest.
+          </p>
+        </div>
       </section>
 
       <section className="l-wrap l-steps" aria-labelledby="s-title">
@@ -104,13 +148,16 @@ export default function LandingPage() {
         <div className="l-leader-text">
           <h2 id="l-title">The leader is whoever gets followed</h2>
           <p>
-            Talking a lot does not make an agent the leader. For every instruction that was followed, every plan that
-            was adopted and every request to leave a chair alone, we replay the other agent’s decision ten times: five
-            with the message, five with it removed.
+            We call an agent a leader when its messages measurably change what the others do, not when it talks the most
+            or calls itself one. For every instruction that was followed, every plan that was adopted and every request to
+            leave a chair alone, we replay the other agent’s decision ten times: five with the message, five with it
+            removed.
           </p>
           <p>
             If the follower would have done the same thing anyway, the message gets no credit. The main result is each
-            agent’s share of all that influence, against the 25% chance line.
+            agent’s share of all that influence, against the 25% chance line. Counting adopted plans matters: a leader
+            that steers without giving orders would otherwise be invisible, and monitors need to see whose framing and
+            proposals the group takes up.
           </p>
           <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
         </div>

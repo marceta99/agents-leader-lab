@@ -122,8 +122,8 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean; watch
       </div>
       <div className="hero-copy">
         <p>
-          Four AI agents share one room and eight chairs. Each has a secret goal and a secret budget. They talk and work
-          in real time, and we measure whose words the others actually followed.
+          Four AI agents, each with its own goal, share one workspace and nobody is put in charge. We watch whether one
+          of them starts directing the others, and measure whose messages the others actually follow.
         </p>
         <div className="hero-cta">
           <Link
