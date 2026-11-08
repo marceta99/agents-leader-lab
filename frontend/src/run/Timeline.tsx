@@ -1,7 +1,7 @@
 import { fmtTime } from './reducer'
 import { SPEEDS, type Speed } from './usePlayback'
 
-const SPEED_LABEL: Record<number, string> = { 0.125: '⅛×', 0.25: '¼×', 0.5: '½×', 1: '1×', 2: '2×', 4: '4×' }
+const SPEED_LABEL: Record<number, string> = { 0.5: '½×', 1: '1×', 2: '2×' }
 
 export default function Timeline(props: {
   t: number

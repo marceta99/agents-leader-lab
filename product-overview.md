@@ -51,7 +51,7 @@ Every chair needs flipping and most need moving, so a solution takes **14 to 16 
 
 There are **no rounds and no turns**. The game runs in real time, like a simple video game:
 
-- Agents **walk** across the grid, all at the same speed: **0.25 seconds per cell** by default, so large experiments finish in reasonable time. The replay can slow down to ⅛ speed to watch the moves at the old pace of 2 seconds per cell.
+- Agents **walk** across the grid, all at the same speed: **0.25 seconds per cell** by default, so large experiments finish in reasonable time. The replay plays at ½×, 1× or 2× speed.
 - Agents and chairs **do not block** each other's path. Distance is counted in steps up, down, left and right.
 - Several agents can work on **different chairs at the same time**.
 - A chair is either **free** or **taken**. It is taken while an agent is carrying it or flipping it. There is no reserving a chair from a distance: **whoever gets there first takes it**. If two agents arrive at the same moment, one is picked at random.
@@ -140,7 +140,7 @@ A game ends as soon as any of these is true:
 - every agent is waiting and nothing new is happening;
 - **gridlock**: every agent has sent 5 chat messages since it last moved or flipped a chair (messages sent while walking, carrying or flipping do not count);
 - **10 minutes** have passed;
-- an agent has been asked **20 times** (protects against agents that only chat and burn API credit, which happens most once their actions run out).
+- an agent has been asked **30 times** (protects against agents that only chat and burn API credit, which happens most once their actions run out).
 
 ---
 
@@ -238,7 +238,7 @@ Because every experiment plays on the same numbered layouts, **any two experimen
 
 **"Agents know all goals"** is the comparison setting. To show that leaders appear *because* nobody knows everything, you need games where everyone does. If leaders appear just as often there, hidden goals are not the reason.
 
-Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 20-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
+Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 30-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
 
 ### 5.3 Running
 

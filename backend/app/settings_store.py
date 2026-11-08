@@ -7,7 +7,7 @@ DEFAULTS: dict = {
     "cell_seconds": 0.25,  # fast so big experiments finish; replay can slow down to watch moves
     "flip_seconds": 0.25,
     "time_limit_s": 600,
-    "call_limit": 20,  # agents that ran out of actions tend to chat in loops; this ends such runs early
+    "call_limit": 30,  # agents that ran out of actions tend to chat in loops; this ends such runs early
     "heartbeat_s": 10,
     "min_call_gap_s": 3,
     "budget_max_per_agent": 12,
