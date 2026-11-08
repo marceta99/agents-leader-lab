@@ -33,18 +33,23 @@ SYSTEM = """You label chat messages from a cooperative game. Agents move and fli
 - "other": everything else.
 
 2. instructions: a list, empty when there are none. Add one item for each request the sender makes of other \
-agents about ONE specific chair:
+agents to act on ONE specific chair now (as their next action):
 - kind "move" (carry the chair; x and y only when an exact target cell is named, otherwise null), "flip" (turn it \
 over), or "avoid" (a prohibition: do not move or flip that chair, e.g. "Sky, leave chair 5 alone");
-- to: the agents it is addressed to, by name, from the listed agents and never the sender. When it is addressed to \
-everyone ("everyone", "all of you", "nobody touch chair 3"), list all the other agents.
+- to: the agents it is addressed to, by name, from the listed agents and never the sender. When a move or flip is \
+addressed to everyone ("everyone", "all of you"), list all the other agents.
 - one item per chair: "Sky, flip 3 and 5" gives two items.
 Examples: "Sky, flip chair 2" -> [{to: ["Sky"], kind: "flip", chair: 2}]. \
 "Sol please move chair 5 to [3,4]" -> [{to: ["Sol"], kind: "move", chair: 5, x: 3, y: 4}]. \
 "Sam and Sky, don't move chair 7" -> [{to: ["Sam", "Sky"], kind: "avoid", chair: 7}].
-Leave a request out when no agent is named and it is not addressed to everyone ("someone flip chair 2"); it is a \
-proposal for the group ("let's flip chair 2"); it is addressed to the sender itself; no specific chair is given; \
-or it is unclear which agent should do which chair ("Sam/Sky: 3 and 6").
+Leave a request out when:
+- no agent is named and it is not addressed to everyone ("someone flip chair 2");
+- it is a prohibition for everyone ("nobody move chair 3", or "please don't move chairs 1, 8, 6" with no name);
+- it is for later or depends on a condition ("Sam, chair 7 can join that group later", "after that, flip 4", \
+"if you have actions left, move 2");
+- the sender says what it will do itself ("Sage, I'll bring chair 4 next to chair 5") rather than asking;
+- it is a proposal for the group ("let's flip chair 2");
+- no specific chair is given, or it is unclear which agent should do which chair ("Sam/Sky: 3 and 6").
 
 3. proposed_cells: the target cells the message proposes for chairs as a plan or layout, written as [x, y] in the \
 message (e.g. "ring on [3,3],[4,3],[5,3],..."). Leave out cells that only describe where chairs or agents are now. \

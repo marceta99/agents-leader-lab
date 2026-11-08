@@ -211,9 +211,10 @@ Measurement rules: `backend/app/measure/run.py` (docstring) and `product-overvie
   "influence_received": {"Sam": 0.6, "Sky": 0.0, "Sol": 2.0, "Sage": 0.6},
   "influence_share": {"Sam": 0.3125, "Sky": 0.6875, "Sol": 0.0, "Sage": 0.0},   // all null if total is 0
   "followers": {"Sky": ["Sage", "Sam", "Sol"], "Sam": ["Sol"]},
-  "instructions": [                // one entry per (message, recipient)
+  "instructions": [                // one entry per (message, recipient, type): requests to one agent are merged
     {"message_id": 3, "from": "Sky", "to": "Sol", "type": "instruction|prohibition|plan",
-     "action": {"kind": "flip|move|avoid", "chair": 2, "cell": null},
+     "action": {"kind": "flip|move|avoid", "chair": 2, "cell": null},   // the request done (when followed), else the first
+     "actions": [{"kind": "flip", "chair": 2, "cell": null}, {"kind": "flip", "chair": 5, "cell": null}],  // all asked
      "followed": true,             // null: the recipient never decided after seeing it
      "p_with": 1.0, "p_without": 0.2, "score": 0.8,   // score null = missing (see untested_reason); 0 = no influence
      "untested_reason": null}      // message_not_seen | no_idle_decision | over_budget | replay_failed
@@ -226,6 +227,8 @@ Measurement rules: `backend/app/measure/run.py` (docstring) and `product-overvie
   "measure_cost_usd": 0.04
 }
 ```
+
+An instruction entry is followed if any of its `actions` is done in the recipient's next 2 acting decisions; its test counts any of them as a hit. Prohibitions addressed to every other agent are dropped. Requests for later, conditional requests and the sender's own plans are not labelled as instructions.
 
 Results measured with version 1 (before 2026-11-08) have one instruction per message, 3+3 replays, no `type`, and 0 instead of missing.
 

@@ -15,13 +15,24 @@ const UNTESTED: Record<string, string> = {
   replay_failed: 'replays failed',
 }
 
+/** Several requests to one agent in one message: "move chair 3, 4 or 5"; mixed kinds joined with " or ". */
+function asked(i: Instruction) {
+  const acts = i.actions ?? [i.action]
+  if (acts.length === 1) return actionText(acts[0])
+  if (new Set(acts.map((a) => a.kind)).size > 1 || acts.some((a) => a.cell)) return acts.map(actionText).join(' or ')
+  const chairs = acts.map((a) => a.chair)
+  return `${acts[0].kind} chair ${chairs.slice(0, -1).join(', ')} or ${chairs[chairs.length - 1]}`
+}
+
 function instrText(i: Instruction) {
+  const chairs = (i.actions ?? [i.action]).map((a) => a.chair).join(', ')
+  const several = (i.actions?.length ?? 1) > 1
   const what =
     i.type === 'plan'
       ? `adopted the plan (${actionText(i.action)})`
       : i.type === 'prohibition'
-        ? `leave chair ${i.action.chair} alone: ${i.followed ? 'left it' : 'touched it'}`
-        : `${actionText(i.action)}: ${i.followed ? 'followed' : i.followed === false ? 'not followed' : 'not seen'}`
+        ? `leave chair ${chairs} alone: ${i.followed ? 'left alone' : 'touched'}`
+        : `${asked(i)}: ${i.followed ? `followed${several ? ` (${actionText(i.action)})` : ''}` : i.followed === false ? 'not followed' : 'not seen'}`
   if (i.score == null) return `${i.to}, ${what}, not testable (${UNTESTED[i.untested_reason ?? ''] ?? 'unknown'})`
   return i.followed === false && i.type !== 'prohibition' ? `${i.to}, ${what}` : `${i.to}, ${what}, influence `
 }

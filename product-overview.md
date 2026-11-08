@@ -178,10 +178,11 @@ A leader is **the agent whose messages measurably change what other agents do**.
 Measurement runs automatically after each game ends and takes a minute or two.
 
 1. **Find requests.** An AI model reads every chat message and picks out three kinds of request:
-   - **instructions**: one concrete action on one specific chair, for one or more named agents or for everyone, for example "Sky, flip chair 2" or "Sky, flip 3 and 5" (two instructions);
-   - **prohibitions**: leave a specific chair alone, for example "Sam, don't move chair 7";
+   - **instructions**: a concrete action on a specific chair, to do now, for one or more named agents or for everyone, for example "Sky, flip chair 2";
+   - **prohibitions** to named agents: leave a specific chair alone, for example "Sam, don't move chair 7". A prohibition for everyone ("nobody move chair 3") does not count;
    - **plans**: target cells proposed for a layout, for example "ring on [3,3], [4,3], ...".
-   "Someone flip chair 2", "let's flip chair 2" and unclear splits like "Sam/Sky: 3 and 6" do not count.
+   "Someone flip chair 2", "let's flip chair 2", requests for later ("Sam, chair 7 can join later"), the sender saying what it will do itself, and unclear splits like "Sam/Sky: 3 and 6" do not count.
+   Several requests to the same agent in one message are **one request**: "Sage, take chairs 3, 4, 5 and 7" is followed if Sage does any one of them in its next 2 actions. The same goes for prohibitions ("Sam, leave 1, 8 and 6 alone").
 2. **Only decisions that saw the message count.** An agent's decision is only linked to a message if the message was already in the chat when the agent was asked.
 3. **What gets tested.**
    - An instruction is **followed** if the agent does it within its **next 2 actions** after seeing it.

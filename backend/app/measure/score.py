@@ -34,11 +34,13 @@ def moves_to(action: dict | None, cells: set) -> bool:
     return bool(action) and action.get("kind") == "move" and tuple(action.get("cell") or ()) in cells
 
 
-def followed(instruction, seen_decisions: list[dict]) -> dict | None:
-    """The decision that followed `instruction`: one of the recipient's next FOLLOW_WINDOW acting decisions among
-    `seen_decisions` (its decisions whose request already contained the message, in order). None if not followed."""
+def followed(instructions, seen_decisions: list[dict]) -> dict | None:
+    """The decision that followed: one of the recipient's next FOLLOW_WINDOW acting decisions among `seen_decisions`
+    (its decisions whose request already contained the message, in order) that does any of `instructions` (one
+    instruction or a list: several requests to one agent in one message count as followed if any one is done)."""
+    items = instructions if isinstance(instructions, list) else [instructions]
     acting = [d for d in seen_decisions if is_acting(d)]
-    return next((d for d in acting[:FOLLOW_WINDOW] if matches(instruction, d["action"])), None)
+    return next((d for d in acting[:FOLLOW_WINDOW] if any(matches(i, d["action"]) for i in items)), None)
 
 
 def instruction_score(p_with: float, p_without: float) -> float:

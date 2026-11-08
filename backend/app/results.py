@@ -158,8 +158,8 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
             a = i.get("action") or {}
             ins_rows.append([
                 run.id, i.get("message_id"), i.get("from"), i.get("to"), i.get("type", "instruction"), a.get("kind"),
-                a.get("chair"), a.get("cell"), i.get("followed"), i.get("p_with"), i.get("p_without"), i.get("score"),
-                i.get("untested_reason"),
+                a.get("chair"), a.get("cell"), ";".join(str(x.get("chair")) for x in i.get("actions") or [a]),
+                i.get("followed"), i.get("p_with"), i.get("p_without"), i.get("score"), i.get("untested_reason"),
             ])
         styles = res.get("styles") or {}
         instr: dict = {}
@@ -183,7 +183,7 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
              "cost_usd", "measure_version", "target_agent", "target_share", "measured_leader_strict",
              "instructions_scored", "instructions_untested"], run_rows))
         z.writestr("instructions.csv", _csv(
-            ["run_id", "message_id", "from", "to", "type", "kind", "chair", "cell", "followed", "p_with", "p_without",
+            ["run_id", "message_id", "from", "to", "type", "kind", "chair", "cell", "chairs_asked", "followed", "p_with", "p_without",
              "score", "untested_reason"], ins_rows))
         z.writestr("messages.csv", _csv(
             ["run_id", "message_id", "t_s", "agent", "text", "style", "is_instruction", "to", "followed", "score"],

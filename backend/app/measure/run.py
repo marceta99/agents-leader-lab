@@ -6,6 +6,8 @@
    - instruction: the recipient did it within its next FOLLOW_WINDOW acting decisions -> test that decision;
    - prohibition: test the recipient's next idle decision (does it touch the chair less with the message?);
    - plan: the recipient's next acting decision carried a chair onto a proposed cell -> test that decision.
+   Several requests to one agent in one message are one entry: followed if any one is done in its next
+   FOLLOW_WINDOW acting decisions. Prohibitions addressed to everyone are not counted.
    Copies are merged: one test per (follower decision, sender), with all of that sender's messages behind it removed
    in the "without" replays, so a follower action is credited once.
 3. Each test replays the decision N_REPLAYS_EACH times with the message(s) and N_REPLAYS_EACH times without.
@@ -94,12 +96,19 @@ async def measure_run(*, events: list[dict], decisions: list[dict], label_fn, re
     tests: dict[tuple, dict] = {}  # merged copies: key -> {type, from, to, decision, mids, hit, entries}
     plans = []  # (message, sender, cells): handled after all instructions, so instruction credit wins
 
-    def add_test(key, kind, sender, to, d, mid, hit, entry):
-        test = tests.setdefault(key, {"type": kind, "from": sender, "to": to, "decision": d, "mids": [], "hit": hit,
+    def add_test(key, kind, sender, to, d, mid, items, entry):
+        test = tests.setdefault(key, {"type": kind, "from": sender, "to": to, "decision": d, "mids": [], "items": [],
                                       "entries": []})
         if mid not in test["mids"]:
             test["mids"].append(mid)
+        test["items"].extend(items)
         test["entries"].append(entry)
+
+    def new_entry(mid, sender, to, kind, actions, followed=None):
+        entry = {"message_id": mid, "from": sender, "to": to, "type": kind, "action": actions[0], "actions": actions,
+                 "followed": followed, "p_with": None, "p_without": None, "score": None, "untested_reason": None}
+        entries.append(entry)
+        return entry
 
     for (_, m), label in zip(msgs, labels):
         if label is _SKIP or label is None:
@@ -108,35 +117,38 @@ async def measure_run(*, events: list[dict], decisions: list[dict], label_fn, re
         styles[str(mid)] = label.style
         sent_styles.append((sender, label.style))
         others = [a for a in agents if a != sender]
+        # Several requests to the same agent in one message are one entry (and one test): followed if any is done.
+        grouped: dict[tuple, list] = {}
         for ins in label.instructions:
             # Trust boundary: recipients must be named other agents of this run.
-            for to in [a for a in dict.fromkeys(ins.to) if a in others]:
-                seen = [d for d in by_agent[to] if saw(d, mid)]
-                kind = "prohibition" if ins.kind == "avoid" else "instruction"
-                entry = {"message_id": mid, "from": sender, "to": to, "type": kind, "action": _action(ins),
-                         "followed": None, "p_with": None, "p_without": None, "score": None, "untested_reason": None}
-                entries.append(entry)
-                if not seen:
-                    entry["untested_reason"] = "message_not_seen"
+            to_all = [a for a in dict.fromkeys(ins.to) if a in others]
+            if ins.kind == "avoid" and len(others) > 1 and len(to_all) == len(others):
+                continue  # a prohibition for everyone ("nobody move chair 3") is not counted
+            for to in to_all:
+                grouped.setdefault((to, "prohibition" if ins.kind == "avoid" else "instruction"), []).append(ins)
+        for (to, kind), group in grouped.items():
+            entry = new_entry(mid, sender, to, kind, [_action(i) for i in group])
+            seen = [d for d in by_agent[to] if saw(d, mid)]
+            if not seen:
+                entry["untested_reason"] = "message_not_seen"
+                continue
+            if kind == "prohibition":
+                chairs = [i.chair for i in group]
+                acting = [d for d in seen if score.is_acting(d)][:FOLLOW_WINDOW]
+                entry["followed"] = not any(score.touches(d["action"], c) for d in acting for c in chairs)
+                target = next((d for d in seen if _idle(d)), None)
+                if target is None:
+                    entry["untested_reason"] = "no_idle_decision"
                     continue
-                if kind == "prohibition":
-                    acting = [d for d in seen if score.is_acting(d)][:FOLLOW_WINDOW]
-                    entry["followed"] = not any(score.touches(d["action"], ins.chair) for d in acting)
-                    target = next((d for d in seen if _idle(d)), None)
-                    if target is None:
-                        entry["untested_reason"] = "no_idle_decision"
-                        continue
-                    chair = ins.chair
-                    add_test(("prohibition", to, target["seq"], sender, chair), kind, sender, to, target, mid,
-                             lambda a, chair=chair: score.touches(a, chair), entry)
-                    continue
-                match = score.followed(ins, seen)
-                entry["followed"] = match is not None
-                if match is None:
-                    entry["score"] = 0.0  # observed not following: no influence, not missing
-                    continue
-                add_test(("instruction", to, match["seq"], sender), kind, sender, to, match, mid,
-                         lambda a, ins=ins: score.matches(ins, a), entry)
+                add_test(("prohibition", to, target["seq"], sender), kind, sender, to, target, mid, chairs, entry)
+                continue
+            match = score.followed(group, seen)
+            entry["followed"] = match is not None
+            if match is None:
+                entry["score"] = 0.0  # observed not following: no influence, not missing
+                continue
+            entry["action"] = dict(match["action"])  # the request that was done
+            add_test(("instruction", to, match["seq"], sender), kind, sender, to, match, mid, group, entry)
         cells = {(c.x, c.y) for c in label.proposed_cells if 0 <= c.x < 8 and 0 <= c.y < 8}
         if cells:
             plans.append((m, sender, cells))
@@ -149,15 +161,19 @@ async def measure_run(*, events: list[dict], decisions: list[dict], label_fn, re
                 continue  # plan not adopted by this agent: nothing to test
             if ("instruction", to, first["seq"], sender) in tests:
                 continue  # this action is already credited to the sender as a followed instruction
-            entry = {"message_id": mid, "from": sender, "to": to, "type": "plan", "action": dict(first["action"]),
-                     "followed": True, "p_with": None, "p_without": None, "score": None, "untested_reason": None}
-            entries.append(entry)
-            key = ("plan", to, first["seq"], sender)
-            add_test(key, "plan", sender, to, first, mid, None, entry)
-            tests[key].setdefault("cells", set()).update(cells)
+            entry = new_entry(mid, sender, to, "plan", [dict(first["action"])], followed=True)
+            add_test(("plan", to, first["seq"], sender), "plan", sender, to, first, mid, list(cells), entry)
+
+    def hit_fn(test):
+        items = test["items"]
+        if test["type"] == "instruction":
+            return lambda a: any(score.matches(i, a) for i in items)
+        if test["type"] == "prohibition":
+            return lambda a: any(score.touches(a, c) for c in set(items))
+        return lambda a, cells=set(items): score.moves_to(a, cells)
+
     for test in tests.values():
-        if test["type"] == "plan":
-            test["hit"] = lambda a, cells=test["cells"]: score.moves_to(a, cells)
+        test["hit"] = hit_fn(test)
 
     async def run_test(test):
         req = test["decision"]["request"]

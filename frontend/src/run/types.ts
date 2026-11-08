@@ -115,7 +115,8 @@ export interface Instruction {
   from: string
   to: string
   type?: 'instruction' | 'prohibition' | 'plan' // missing on results measured before measure_version 2
-  action: { kind: string; chair: number | null; cell: Cell | null }
+  action: { kind: string; chair: number | null; cell: Cell | null } // the one done, when followed
+  actions?: { kind: string; chair: number | null; cell: Cell | null }[] // everything asked of this agent
   followed: boolean | null
   p_with: number | null
   p_without: number | null

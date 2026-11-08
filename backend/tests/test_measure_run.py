@@ -114,7 +114,8 @@ async def test_measure_run_end_to_end_fixture():
     assert r["measured_leader"] == "Sky" and r["measured_leader_strict"] == "Sky"
 
     assert by_msg(r, 1)[0] | {} == {"message_id": 1, "from": "Sky", "to": "Sol", "type": "instruction",
-                                   "action": act("flip", 2), "followed": True, "p_with": 1.0, "p_without": 0.0,
+                                   "action": act("flip", 2), "actions": [act("flip", 2)], "followed": True,
+                                   "p_with": 1.0, "p_without": 0.0,
                                    "score": 1.0, "untested_reason": None}
     assert by_msg(r, 7)[0]["score"] == 1.0  # the copy shows the shared test
     assert by_msg(r, 2)[0]["p_without"] == 0.4 and by_msg(r, 2)[0]["score"] == 0.6
@@ -162,6 +163,24 @@ async def test_group_instruction_tests_each_recipient():
     m1 = by_msg(r, 1)
     assert [e["to"] for e in m1] == ["Sol", "Sage"]  # the sender itself is dropped
     assert m1[0]["score"] == 1.0 and m1[1]["followed"] is False  # Sage moved chair 5 instead
+
+
+async def test_requests_to_one_agent_merge_and_group_bans_are_dropped():
+    async def labels(sender, text, agents):
+        if text == "Sage, move chair 5 to [4,4]":  # Sol-style message: four chairs for Sage, plus a ban for everyone
+            return MessageLabel(style="directive", instructions=[
+                ins(["Sage"], "move", 3), ins(["Sage"], "move", 4), ins(["Sage"], "move", 5), ins(["Sage"], "move", 7),
+                ins(["Sam", "Sol", "Sage"], "avoid", 1),
+            ]), 0.0
+        return MessageLabel(style="other"), 0.0
+
+    r = await measure_run(events=events(), decisions=DECISIONS, label_fn=labels, replay_fn=make_fake_replay(),
+                          min_influence=0.5, budget_left_usd=None)
+    m2 = by_msg(r, 2)
+    assert len(m2) == 1 and m2[0]["type"] == "instruction"  # one entry for Sage, no entry for the group ban
+    assert [a["chair"] for a in m2[0]["actions"]] == [3, 4, 5, 7]
+    assert m2[0]["followed"] is True and m2[0]["action"] == act("move", 5, [4, 4])  # chair 5 was done: followed
+    assert r["tests"]["run"] == 1 and m2[0]["score"] == 0.6
 
 
 async def test_untestable_is_missing_not_zero():

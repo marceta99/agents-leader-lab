@@ -139,5 +139,5 @@ async def test_export_zip_has_three_csvs(auth_client):
     assert len(runs_lines) == 3 and runs_lines[1].startswith(f"{run_ids[0]},free,1,,finished,solved,True,,120.0,Sky")
     assert len(msg_lines) == 3
     assert ins_lines[0].startswith("run_id,message_id,from,to,type") and len(ins_lines) == 3
-    assert ins_lines[1] == f"{run_ids[0]},1,Sky,Sol,instruction,,,,True,,,0.67,"
+    assert ins_lines[1] == f"{run_ids[0]},1,Sky,Sol,instruction,,,,None,True,,,0.67,"
     assert msg_lines[1] == f"{run_ids[0]},1,0.5,Sky,\"Sol, flip 2\",directive,True,Sol,True,0.67"
