@@ -1,0 +1,233 @@
+/* Styles for landing, experiments, new experiment, experiment and admin pages. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.page h1,
+.page h2,
+.page h3 {
+  margin: 0 0 8px;
+}
+
+.page p {
+  margin: 0 0 8px;
+}
+
+.spread {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--line);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.badge.running,
+.badge.measuring {
+  background: #dbe6ff;
+  color: var(--accent);
+}
+.badge.finished {
+  background: #d8f0e1;
+  color: var(--ok);
+}
+.badge.failed,
+.badge.stopped {
+  background: #f8dcda;
+  color: var(--danger);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* progress / rate bars */
+.bar {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+.bar-chance {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 25%;
+  border-left: 2px dashed var(--ink);
+}
+.stack {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--line);
+}
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.tile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.tile .value {
+  font-size: 22px;
+  font-weight: 700;
+}
+.tile .label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tile.wide {
+  grid-column: 1 / -1;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+dl.summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+dl.summary dt {
+  color: var(--muted);
+}
+dl.summary dd {
+  margin: 0;
+}
+
+/* forms */
+.form.wide {
+  max-width: 640px;
+}
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.budget-inputs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.budget-inputs input {
+  width: 100%;
+}
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+}
+.callout ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.share-link {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.share-link input {
+  min-width: 0;
+  width: 220px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+.small {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+/* landing */
+.hero {
+  padding: 24px 16px;
+}
+.hero h1 {
+  font-size: 30px;
+}
+.hero p {
+  max-width: 720px;
+  font-size: 17px;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.run-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.run-links a {
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+input[type='number'] {
+  max-width: 100%;
+}

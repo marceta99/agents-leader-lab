@@ -1,0 +1,39 @@
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import AdminPage from './pages/AdminPage'
+import ExperimentPage from './pages/ExperimentPage'
+import ExperimentsPage from './pages/ExperimentsPage'
+import KeyPage from './pages/KeyPage'
+import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
+import NewExperimentPage from './pages/NewExperimentPage'
+import RunPage from './pages/RunPage'
+import SharedRunPage from './pages/SharedRunPage'
+import SignupPage from './pages/SignupPage'
+import UserMenu from './UserMenu'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <header className="topbar">
+        <Link to="/" className="brand">
+          Agents Leader Lab
+        </Link>
+        <UserMenu />
+      </header>
+      <main>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/settings/key" element={<KeyPage />} />
+          <Route path="/experiments" element={<ExperimentsPage />} />
+          <Route path="/experiments/new" element={<NewExperimentPage />} />
+          <Route path="/experiments/:id" element={<ExperimentPage />} />
+          <Route path="/runs/:id" element={<RunPage />} />
+          <Route path="/r/:token" element={<SharedRunPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </main>
+    </BrowserRouter>
+  )
+}
