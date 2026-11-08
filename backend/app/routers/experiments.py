@@ -85,7 +85,7 @@ def _detail(exp: Experiment, runs) -> dict:
 
     runs = _sorted_runs(runs)
     return {**experiment_summary(exp, runs), "config": exp.config, "stop_reason": exp.stop_reason,
-            "runs": [run_summary(r) for r in runs]}
+            "runs": [run_summary(r, (exp.config or {}).get("budget")) for r in runs]}
 
 
 async def _own(db: AsyncSession, exp_id: int, user: User) -> tuple[Experiment, list[Run]]:

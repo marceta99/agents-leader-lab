@@ -30,6 +30,20 @@ def roles(n: int) -> tuple[str, str]:
     return GOALS[i % 4], GOALS[(i + i // 4 + 1) % 4]
 
 
+def _shuffle(seed: int) -> tuple[list[str], list[int]]:
+    """Per run: names[i] plays GOALS[i]; order is the order everyone is listed in."""
+    run_rng = random.Random(f"run-{seed}")
+    return run_rng.sample(AGENTS, 4), run_rng.sample(range(4), 4)
+
+
+def rich_agent(n: int, budgets: list[int], seed: int) -> str | None:
+    """Name with the most actions in layout n of this run, without building the layout. None on a tie."""
+    ranked = sorted(budgets, reverse=True)
+    if len(ranked) < 2 or ranked[0] == ranked[1]:
+        return None
+    return _shuffle(seed)[0][GOALS.index(roles(n)[1])]
+
+
 def make_layout(n: int, budgets: list[int], seed: int = 0) -> Layout:
     # Separate string sub-seeds (deterministic across processes) so each part is independent.
     zone = random.Random(f"layout-{n}-zone").randrange(4)
@@ -45,9 +59,7 @@ def make_layout(n: int, budgets: list[int], seed: int = 0) -> Layout:
     r = GOALS.index(rich_goal)
     budget_by_goal = {GOALS[(r + k) % 4]: ranked[k] for k in range(4)}
     # Per run: which name plays which goal, and the order everyone is listed in.
-    run_rng = random.Random(f"run-{seed}")
-    names = run_rng.sample(AGENTS, 4)  # names[i] plays GOALS[i]
-    order = run_rng.sample(range(4), 4)
+    names, order = _shuffle(seed)
     goal_of = dict(zip(names, GOALS))
     agents = [(names[i], start_cells[i]) for i in order]
     return Layout(

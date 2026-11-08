@@ -25,6 +25,7 @@ export type RunSummary = {
   seed: number | null
   measured_leader: string | null
   leader_agent: string | null
+  rich_agent?: string | null // most actions; null when budgets tie
   cost_usd: number
 }
 

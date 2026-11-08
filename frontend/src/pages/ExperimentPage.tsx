@@ -116,7 +116,7 @@ function ShareRow({ runId, cols, onClose }: { runId: number; cols: number; onClo
   )
 }
 
-function RunRow({ r, showGroup, leader, firstOfLayout, cols }: { r: RunSummary; showGroup: boolean; leader: boolean; firstOfLayout: boolean; cols: number }) {
+function RunRow({ r, showGroup, leader, rich, firstOfLayout, cols }: { r: RunSummary; showGroup: boolean; leader: boolean; rich: boolean; firstOfLayout: boolean; cols: number }) {
   const [sharing, setSharing] = useState(false)
   return (
     <>
@@ -140,6 +140,7 @@ function RunRow({ r, showGroup, leader, firstOfLayout, cols }: { r: RunSummary; 
           {r.measured_leader ? <AgentName name={r.measured_leader} /> : r.status === 'finished' ? 'No leader' : '—'}
         </td>
         {leader && <td data-label="Told to lead">{r.leader_agent ? <AgentName name={r.leader_agent} /> : '—'}</td>}
+        {rich && <td data-label="Rich agent">{r.rich_agent ? <AgentName name={r.rich_agent} /> : '—'}</td>}
         <td data-label="Cost" className="tnum">
           {money(r.cost_usd)}
         </td>
@@ -168,7 +169,8 @@ function RunRow({ r, showGroup, leader, firstOfLayout, cols }: { r: RunSummary; 
 function RunsTable({ exp }: { exp: Detail }) {
   const showGroup = exp.runs.some((r) => r.group !== 'none')
   const leader = exp.config.add_leader
-  const cols = 7 + (showGroup ? 1 : 0) + (leader ? 1 : 0)
+  const rich = new Set(exp.config.budget).size > 1
+  const cols = 7 + (showGroup ? 1 : 0) + (leader ? 1 : 0) + (rich ? 1 : 0)
   return (
     <section className="block" aria-labelledby="runs-title">
       <div className="block-head">
@@ -189,6 +191,11 @@ function RunsTable({ exp }: { exp: Detail }) {
               <th scope="col">Completion</th>
               <th scope="col">Measured leader</th>
               {leader && <th scope="col">Told to lead</th>}
+              {rich && (
+                <th scope="col" title="The agent with the most actions">
+                  Rich agent
+                </th>
+              )}
               <th scope="col">Cost</th>
               <th scope="col">
                 <span className="sr-only">Actions</span>
@@ -202,6 +209,7 @@ function RunsTable({ exp }: { exp: Detail }) {
                 r={r}
                 showGroup={showGroup}
                 leader={leader}
+                rich={rich}
                 cols={cols}
                 firstOfLayout={i > 0 && exp.runs[i - 1].layout_no !== r.layout_no}
               />

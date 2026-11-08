@@ -288,7 +288,7 @@ Response shapes:
 
 - `ExperimentSummary`: `{id, name, status, created_at, runs_done, runs_total, spent_usd, cap_usd, model, add_leader, is_demo}`.
 - `ExperimentDetail`: `ExperimentSummary` + `{config, stop_reason, runs: [RunSummary]}`.
-- `RunSummary`: `{id, group, layout_no, status, end_reason, solved, completion, seed, measured_leader, leader_agent, cost_usd}`.
+- `RunSummary`: `{id, group, layout_no, status, end_reason, solved, completion, seed, measured_leader, leader_agent, rich_agent, cost_usd}`. `rich_agent` is the agent with the most actions, known before the run is measured; null when the top budgets tie.
 - `ExperimentResults`:
 
   ```json

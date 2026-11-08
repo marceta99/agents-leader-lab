@@ -42,5 +42,5 @@ async def demos(db: AsyncSession = Depends(get_db)):
     out = []
     for exp in exps.all():  # ponytail: one query per demo; demos are a handful
         runs = (await db.scalars(select(Run).where(Run.experiment_id == exp.id).order_by(Run.layout_no, Run.id))).all()
-        out.append({"experiment": experiment_summary(exp, runs), "runs": [run_summary(r) for r in runs]})
+        out.append({"experiment": experiment_summary(exp, runs), "runs": [run_summary(r, (exp.config or {}).get("budget")) for r in runs]})
     return out

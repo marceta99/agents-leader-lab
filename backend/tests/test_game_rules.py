@@ -1,6 +1,6 @@
 from app.game.board import AGENTS, GOALS, in_grid
 from app.game.goals import goals_met
-from app.game.layouts import make_layout, roles
+from app.game.layouts import make_layout, rich_agent, roles
 from app.game.solver import PLACEMENTS, actions_left, completion, min_actions
 
 
@@ -72,6 +72,12 @@ def test_roles_rotate_over_layouts():
     assert lay.goals[lay.leader] == leader_goal
     assert lay.goals[max(lay.budgets, key=lay.budgets.get)] == rich_goal
 
+
+def test_rich_agent_matches_layout():
+    for n, seed in [(1, 7), (5, 3), (14, 123456)]:
+        lay = make_layout(n, [9, 5, 3, 3], seed)
+        assert rich_agent(n, [3, 9, 5, 3], seed) == max(lay.budgets, key=lay.budgets.get)
+    assert rich_agent(1, [6, 6, 6, 6], 7) is None and rich_agent(1, [9, 9, 3, 3], 7) is None
 
 def test_layouts_1_to_200_in_14_16_range():
     for n in range(1, 201):

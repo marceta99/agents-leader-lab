@@ -5,6 +5,7 @@ import io
 import zipfile
 
 from app.game.board import AGENTS
+from app.game.layouts import rich_agent
 
 GROUP_ORDER = ["none", "free", "directive", "nondirective"]
 DONE = {"finished", "stopped", "failed"}
@@ -15,13 +16,15 @@ def _iso(dt):
     return dt.isoformat() if dt else None
 
 
-def run_summary(run) -> dict:
+def run_summary(run, budgets: list[int] | None = None) -> dict:
     r = run.result or {}
+    rich = r["richest_agent"] if "richest_agent" in r else (
+        rich_agent(run.layout_no, budgets, run.seed if run.seed is not None else run.layout_no) if budgets else None)
     return {
         "id": run.id, "group": run.group, "layout_no": run.layout_no, "status": run.status,
         "end_reason": run.end_reason, "solved": r.get("solved"), "completion": r.get("completion"),
         "seed": run.seed, "measured_leader": r.get("measured_leader"),
-        "leader_agent": r.get("leader_agent"), "cost_usd": run.cost_usd,
+        "leader_agent": r.get("leader_agent"), "rich_agent": rich, "cost_usd": run.cost_usd,
     }
 
 
@@ -123,7 +126,8 @@ def export_json(exp, runs, events_by_run: dict, decisions_by_run: dict) -> dict:
         },
         "runs": [
             {
-                **run_summary(r), "result": r.result, "started_at": _iso(r.started_at), "ended_at": _iso(r.ended_at),
+                **run_summary(r, (exp.config or {}).get("budget")), "result": r.result,
+                "started_at": _iso(r.started_at), "ended_at": _iso(r.ended_at),
                 "events": [_event(e) for e in events_by_run.get(r.id, [])],
                 "decisions": [_decision(d) for d in decisions_by_run.get(r.id, [])],
             }
