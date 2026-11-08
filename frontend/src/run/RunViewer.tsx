@@ -61,6 +61,12 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
               <dd>{state.ended.solved ? 'Solved' : state.ended.reason.replaceAll('_', ' ')}</dd>
             </div>
           )}
+          {state.ended && !state.ended.solved && state.ended.completion != null && (
+            <div>
+              <dt>Completion</dt>
+              <dd className="tnum">{Math.round(state.ended.completion * 100)}%</dd>
+            </div>
+          )}
           {run.result && (
             <div>
               <dt>Measured leader</dt>
@@ -71,7 +77,7 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
         <ul className="rv-goals" aria-label="Goals">
           {GOAL_IDS.map((g) => (
             <li key={g} className={state.goalsMet[g] ? 'met' : undefined}>
-              <span aria-hidden="true">{state.goalsMet[g] ? '✓' : '○'}</span> {GOAL_SHORT[g]}
+              <span aria-hidden="true">{state.goalsMet[g] ? '✓' : '○'}</span> {g === 'one_zone' && start?.target_zone != null ? `Zone ${start.target_zone}` : GOAL_SHORT[g]}
               <span className="rv-sr">{state.goalsMet[g] ? ' (met)' : ' (not met)'}</span>
             </li>
           ))}
@@ -111,7 +117,7 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
             <ChatPanel messages={state.messages} result={run.result} follow={live || pb.playing} />
           </div>
           <div className={tab === 'agents' ? 'rv-pane on' : 'rv-pane'}>
-            <AgentPanel agents={state.agents} goalsMet={state.goalsMet} leader={leader} />
+            <AgentPanel agents={state.agents} goalsMet={state.goalsMet} leader={leader} zone={start?.target_zone} />
           </div>
         </div>
       </div>

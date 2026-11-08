@@ -21,6 +21,8 @@ export type RunSummary = {
   status: string
   end_reason: string | null
   solved: boolean | null
+  completion: number | null
+  seed: number | null
   measured_leader: string | null
   leader_agent: string | null
   cost_usd: number
@@ -39,16 +41,26 @@ export const GROUP_LABELS: Record<string, string> = {
   free: 'Free leader',
   directive: 'Directive leader',
   nondirective: 'Non-directive leader',
-  solo: 'Solo baseline',
 }
 export const groupLabel = (g: string) => GROUP_LABELS[g] ?? g
 
-// What the leader agent is told in each group (contract: "Prompt wording").
-export const LEADER_TEXT: Record<string, string> = {
-  none: 'Nothing. A normal game, for comparison.',
-  free: '"You are the leader. Decide how to lead."',
-  directive: '"Lead by giving clear instructions to the others."',
-  nondirective: '"Lead by asking questions, proposing ideas and summarising, without telling anyone what to do."',
+// Default leader prompts (backend agents/prompts.py LEADER_LINES); editable per experiment.
+export const LEADER_DEFAULTS: Record<string, string> = {
+  free: 'You are the leader. Decide how to lead.',
+  directive: 'Lead by giving clear instructions to the others.',
+  nondirective: 'Lead by asking questions, proposing ideas and summarising, without telling anyone what to do.',
+}
+export const LEADER_MAX = 1000
+
+/** What the leader agent is told in each group: the experiment's own prompts, else the defaults. */
+export const leaderText = (g: string, prompts?: Record<string, string> | null) =>
+  g === 'none' ? 'Nothing. A normal game, for comparison.' : `"${prompts?.[g] ?? LEADER_DEFAULTS[g] ?? ''}"`
+
+/** Experiment name built from its settings (same rule as the backend's experiment_name). */
+export function experimentName(c: { know_all_goals: boolean; budget: number[]; add_leader: boolean }) {
+  const b = c.budget
+  const budget = new Set(b).size === 1 ? `Equal budget ${b[0]}` : `Budget ${[...b].sort((x, y) => y - x).join('-')}`
+  return `${c.know_all_goals ? 'Goals known' : 'Goals hidden'} · ${budget} · ${c.add_leader ? 'Leader groups' : 'No leader'}`
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -71,17 +83,14 @@ const STOP_REASONS: Record<string, string> = {
 }
 export const stopReasonText = (r: string) => STOP_REASONS[r] ?? r.replace(/_/g, ' ')
 
-export const AGENT_COLORS: Record<string, string> = { Ada: 'var(--ada)', Bo: 'var(--bo)', Cy: 'var(--cy)', Dee: 'var(--dee)' }
+// Current names, plus the names older runs used.
+export const AGENT_COLORS: Record<string, string> = {
+  Sam: 'var(--ada)', Sky: 'var(--bo)', Sol: 'var(--cy)', Sage: 'var(--dee)',
+  Ada: 'var(--ada)', Bo: 'var(--bo)', Cy: 'var(--cy)', Dee: 'var(--dee)',
+}
 
 export const dateLabel = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-
-export const GOAL_TEXT: Record<string, string> = {
-  circle: 'Arrange the chairs in a circle.',
-  upside_down: 'Turn all the chairs upside down.',
-  one_zone: 'Move all the chairs to one part of the room (one zone).',
-  touching: 'Make all the chairs touch each other.',
-}
 
 export function money(usd: number | null | undefined): string {
   if (usd == null) return '—'

@@ -39,7 +39,7 @@ async def test_demo_visible_logged_out(admin_client, client):
     assert r.status_code == 200
     demos = r.json()
     assert [d["experiment"]["id"] for d in demos] == [demo_id]
-    assert demos[0]["runs"][0]["id"] == run_id and demos[0]["runs"][0]["measured_leader"] == "Bo"
+    assert demos[0]["runs"][0]["id"] == run_id and demos[0]["runs"][0]["measured_leader"] == "Sky"
     assert "admin@example.com" not in r.text and "user_id" not in demos[0]["experiment"]
 
 

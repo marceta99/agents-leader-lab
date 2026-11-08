@@ -30,7 +30,7 @@ SYSTEM = """You label chat messages from a cooperative game. Agents move and fli
 never the sender) to do ONE concrete action on one specific chair:
 - kind "move" (carry the chair to a cell) or "flip" (turn it over), with the chair id;
 - x and y only when the message names an exact target cell for a move, otherwise null.
-Examples: "Bo, flip chair 2" -> {to: "Bo", kind: "flip", chair: 2}. \
+Examples: "Sky, flip chair 2" -> {to: "Sky", kind: "flip", chair: 2}. \
 "Cy please move chair 5 to [3,4]" -> {to: "Cy", kind: "move", chair: 5, x: 3, y: 4}.
 Set instruction to null when: no agent is named ("someone flip chair 2"); it is a proposal for the group \
 ("let's flip chair 2"); it is addressed to several agents or to the sender itself; no specific chair is given; \

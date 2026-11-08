@@ -1,6 +1,6 @@
 """Render an engine observation (docs/contracts.md "Observation") into the text an agent reads."""
 
-from app.agents.prompts import GOAL_TEXT
+from app.game.board import goal_text
 
 GRID = 8
 
@@ -43,27 +43,19 @@ def _map(chairs) -> list[str]:
     return lines
 
 
-def _goal_lines(goal, goal_met) -> list[str]:
-    if isinstance(goal, list):
-        met = goal_met or {}
-        return ["- Your goals:"] + [
-            f"  - {GOAL_TEXT[g]} Currently met: {'yes' if met.get(g) else 'no'}." for g in goal
-        ]
-    return [f"- Your goal: {GOAL_TEXT[goal]} Currently met: {'yes' if goal_met else 'no'}."]
-
-
 def render_state(observation: dict, triggers: list[str], notes: str | None) -> str:
     you = observation["you"]
     others = observation.get("others", [])
     chairs = sorted(observation["chairs"], key=lambda c: c["id"])
     name = you["name"]
+    zone_no = observation.get("target_zone")
 
     lines = [f"Time left: {observation['time_left_s']} s", "", "Your status:"]
     lines.append(f"- You are {name}, standing on cell {_cell(you['cell'])}.")
     lines.append(f"- State: {you['state']}. Holding: {_holding(you.get('holding'))}.")
     lines.append(f"- Current action: {_heading(you.get('heading'))}.")
     lines.append(f"- Actions left: {you['budget_left']}.")
-    lines += _goal_lines(you["goal"], you.get("goal_met"))
+    lines.append(f"- Your goal: {goal_text(you['goal'], zone_no)} Currently met: {'yes' if you.get('goal_met') else 'no'}.")
     lines.append("")
     lines += _map(chairs)
     lines.append("")
@@ -77,9 +69,12 @@ def render_state(observation: dict, triggers: list[str], notes: str | None) -> s
         lines.append("")
         lines.append("Other people:")
         for o in others:
-            line = f"- {o['name']}: cell {_cell(o['cell'])}, holding {_holding(o.get('holding'))}."
+            line = f"- {o['name']}: cell {_cell(o['cell'])}, holding {_holding(o.get('holding'))}"
+            if o.get("budget_left") is not None:
+                line += f", actions left: {o['budget_left']}"
+            line += "."
             if o.get("goal"):
-                line += f" Goal: {GOAL_TEXT[o['goal']]}"
+                line += f" Goal: {goal_text(o['goal'], zone_no)}"
             lines.append(line)
     lines.append("")
     lines.append("Your notes:")

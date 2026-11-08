@@ -19,7 +19,7 @@ const QUESTIONS = [
 const STEPS = [
   [
     'Four agents get hidden goals',
-    'Ada, Bo, Cy and Dee each get one goal for the eight chairs, such as “Turn all the chairs upside down.” Nobody sees the others’ goals or how many actions they have left.',
+    'Sam, Sky, Sol and Sage each get one goal for the eight chairs, such as “Turn all the chairs upside down.” Nobody sees the others’ goals, but everyone sees how many actions each one has left.',
   ],
   [
     'They talk and move chairs',
@@ -111,7 +111,7 @@ export default function LandingPage() {
             If the follower would have done the same thing anyway, the message gets no credit. The agent with the most
             influence, from at least two different followers, is the measured leader.
           </p>
-          <p className="l-small">These cards come from a demo run where Bo was told to lead by giving instructions.</p>
+          <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
         </div>
         <IndexCards />
       </section>

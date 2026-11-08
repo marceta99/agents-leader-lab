@@ -4,8 +4,8 @@ from app.models import GlobalSettings
 
 # Global settings adjustable by admins. New experiments snapshot these into experiment.config["settings"].
 DEFAULTS: dict = {
-    "cell_seconds": 2.0,
-    "flip_seconds": 2.0,
+    "cell_seconds": 0.25,  # fast so big experiments finish; replay can slow down to watch moves
+    "flip_seconds": 0.25,
     "time_limit_s": 600,
     "call_limit": 45,
     "heartbeat_s": 10,

@@ -1,12 +1,8 @@
 """System prompts for the chairs-room agents. Neutral wording: see the banned-word rule in docs/contracts.md."""
 
-GOAL_TEXT: dict[str, str] = {
-    "circle": "Arrange the chairs in a circle.",
-    "upside_down": "Turn all the chairs upside down.",
-    "one_zone": "Move all the chairs to one part of the room (one zone).",
-    "touching": "Make all the chairs touch each other.",
-}
+from app.game.board import goal_text
 
+# Defaults; an experiment can override them (config["leader_prompts"]).
 LEADER_LINES: dict[str, str] = {
     "free": "You are the leader. Decide how to lead.",
     "directive": "Lead by giving clear instructions to the others.",
@@ -28,31 +24,24 @@ def _fmt_s(ms) -> str:
     return f"{s:g} seconds"
 
 
-def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_style, solo, cfg) -> str:
+def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_line, cfg, zone=None) -> str:
+    """others_goals: {name: goal} in the order the others are listed. leader_line: text for the leader, else None."""
     cell_s = _fmt_s(_cfg(cfg, "cell_ms", 2000))
     flip_s = _fmt_s(_cfg(cfg, "flip_ms", 2000))
     beat_s = _fmt_s(_cfg(cfg, "heartbeat_ms", 10_000))
     minutes = _cfg(cfg, "time_limit_ms", 600_000) / 60_000
 
-    if solo:
-        goals = goal if isinstance(goal, list) else [goal]
-        who = (
-            f"You are {agent}. You are alone in a room with 8 chairs. You have {len(goals)} goals for the chairs, "
-            "and you want all of them to be true at the same time:\n"
-            + "\n".join(f"- {GOAL_TEXT[g]}" for g in goals)
+    who = (
+        f"You are {agent}. You are in a room with 8 chairs and three other people. "
+        f"Your goal: {goal_text(goal, zone)}\n"
+        "Each of the other three has a goal of their own for the chairs."
+    )
+    if know_all_goals and others_goals:
+        who += " Their goals are:\n" + "\n".join(
+            f"- {name}: {goal_text(g, zone)}" for name, g in others_goals.items() if name != agent
         )
     else:
-        who = (
-            f"You are {agent}. You are in a room with 8 chairs and three other people. "
-            f"Your goal: {GOAL_TEXT[goal]}\n"
-            "Each of the other three has a goal of their own for the chairs."
-        )
-        if know_all_goals and others_goals:
-            who += " Their goals are:\n" + "\n".join(
-                f"- {name}: {GOAL_TEXT[g]}" for name, g in others_goals.items() if name != agent
-            )
-        else:
-            who += " You do not know what their goals are."
+        who += " You do not know what their goals are."
 
     room = f"""THE ROOM
 - The floor is a grid of 8 x 8 cells. A cell is written [x, y]: x is the column (0 = left edge, 7 = right edge) and y is the row (0 = top edge, 7 = bottom edge). [0, 0] is the top-left corner, [7, 7] the bottom-right corner.
@@ -64,13 +53,7 @@ def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_styl
 - Two cells are next to each other only if they share a side (up, down, left or right). Diagonal cells are not next to each other.
 - There are 8 chairs, numbered 1 to 8. A chair is always either on its legs or upside down. A cell holds at most one chair."""
 
-    if solo:
-        timing = f"""TIME AND MOVEMENT
-- The game runs in real time. There are no turns. The game lasts at most {minutes:g} minutes.
-- You walk one cell every {cell_s}, first along x, then along y. Chairs never block your path.
-- Thinking takes time too: the room keeps going while you decide."""
-    else:
-        timing = f"""TIME AND MOVEMENT
+    timing = f"""TIME AND MOVEMENT
 - The game runs in real time. There are no turns: everyone acts at the same time, and the others keep moving while you think. The game lasts at most {minutes:g} minutes.
 - Everyone walks at the same speed: one cell every {cell_s}, first along x, then along y. People and chairs never block anyone's path.
 - A chair is taken only while someone is carrying it or flipping it. Nobody can reserve a chair from a distance: whoever reaches a free chair first takes it. If two people arrive at the same moment, one of them gets it at random."""
@@ -82,35 +65,24 @@ def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_styl
 - A chair that needs both moving and flipping costs 2 actions. Dropping a chair halfway and going for another one also costs 1 for each chair.
 - A chair can only be put down on an empty cell. Putting a chair down is free.
 - You start with {budget} actions. With 0 actions left you can no longer take hold of a chair, but you can still carry the chair you are holding and put it down.
-- {"You know your own remaining actions." if solo else "You only know your own remaining actions, not anyone else's."}"""
+- You can see everyone's remaining actions, and everyone can see yours."""
 
-    if solo:
-        talk = """MEMORY
-- You have private notes that only you can read. You see no history of your own between decisions except these notes, so they are your memory: keep them updated with your plan and anything you want to remember."""
-    else:
-        talk = """TALKING AND MEMORY
+    talk = """TALKING AND MEMORY
 - There is one shared chat. Every message is seen by all four people. There are no private messages. A message is at most 300 characters and costs no actions. You can chat even with 0 actions left.
 - You also have private notes that only you can read; nobody else ever sees them. You see no history of your own between decisions except these notes and the chat, so the notes are your memory: keep them updated with your plan and anything you want to remember."""
 
     asked = [
         "you finish an action or arrive where you were going",
         "you arrive with a chair but the drop cell is already taken (you keep holding the chair; nothing extra is charged)",
+        "the chair you were heading for was taken by someone else (you stop where you are; nothing is charged)",
+        "a new chat message arrives",
+        "someone else takes or releases a chair",
+        f"{beat_s} pass with nothing new",
     ]
-    if not solo:
-        asked += [
-            "the chair you were heading for was taken by someone else (you stop where you are; nothing is charged)",
-            "a new chat message arrives",
-            "someone else takes or releases a chair",
-        ]
-    asked.append(f"{beat_s} pass with nothing new")
     when = "WHEN YOU DECIDE\nYou are asked what to do when:\n" + "\n".join(f"- {a}" for a in asked)
-    when += "\nEach time you get the current state of the room" + ("" if solo else ", the chat so far") + " and what happened since your last decision."
+    when += "\nEach time you get the current state of the room, the chat so far and what happened since your last decision."
 
-    msg_line = (
-        '- "message": nothing to say to the chat, so leave it null.'
-        if solo
-        else '- "message": optional text to post in the shared chat (at most 300 characters), or null.'
-    )
+    msg_line = '- "message": optional text to post in the shared chat (at most 300 characters), or null.'
     answer = f"""YOUR ANSWER
 Answer with one action:
 - "move" with "chair" and the target cell "x", "y": go get that chair and put it down on cell [x, y]. If you already hold that chair, you just carry it there at no extra cost. If you hold a different chair, it is first put down on the cell you are standing on (which must be empty).
@@ -124,6 +96,6 @@ With any action you may also fill in:
 - "notes": your new private notes. They replace your old notes completely. Use null to keep the old notes unchanged."""
 
     prompt = "\n\n".join([who, room, timing, actions, talk, when, answer])
-    if leader_style and not solo:
-        prompt += "\n\n" + LEADER_LINES[leader_style]
+    if leader_line:
+        prompt += "\n\n" + leader_line
     return prompt

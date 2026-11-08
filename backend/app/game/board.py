@@ -1,14 +1,21 @@
 """Board basics: 8x8 grid, zones, agent names and goals (see docs/contracts.md)."""
 
 GRID = 8
-AGENTS = ["Ada", "Bo", "Cy", "Dee"]
+AGENTS = ["Sam", "Sky", "Sol", "Sage"]  # short, gender-neutral; shuffled onto goals per run (layouts.py)
 GOALS = ["circle", "upside_down", "one_zone", "touching"]
-GOAL_TEXT = {
-    "circle": "Arrange the chairs in a circle.",
-    "upside_down": "Turn all the chairs upside down.",
-    "one_zone": "Move all the chairs to one part of the room (one zone).",
-    "touching": "Make all the chairs touch each other.",
-}
+ZONE_NAMES = ["top-left", "top-right", "bottom-left", "bottom-right"]
+
+
+def goal_text(goal: str, zone: int | None = None) -> str:
+    if goal == "one_zone":
+        if zone is None:
+            return "Move all the chairs to one part of the room (one zone)."
+        return f"Move all the chairs to zone {zone} (the {ZONE_NAMES[zone]} part of the room)."
+    return {
+        "circle": "Arrange the chairs in a circle.",
+        "upside_down": "Turn all the chairs upside down.",
+        "touching": "Make all the chairs touch each other.",
+    }[goal]
 
 
 def zone(cell) -> int:

@@ -13,6 +13,10 @@ export const GOAL_TEXT: Record<GoalId, string> = {
   one_zone: 'Move all the chairs to one part of the room (one zone).',
   touching: 'Make all the chairs touch each other.',
 }
+const ZONE_NAMES = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+/** Goal text as the agent read it: one_zone names the run's target zone (older runs: any zone). */
+export const goalText = (g: GoalId, zone?: number | null) =>
+  g === 'one_zone' && zone != null ? `Move all the chairs to zone ${zone} (the ${ZONE_NAMES[zone]} part of the room).` : GOAL_TEXT[g]
 export const GOAL_SHORT: Record<GoalId, string> = {
   circle: 'Circle',
   upside_down: 'Upside down',
@@ -26,7 +30,12 @@ export const STYLE_COLORS: Record<Style, string> = {
   non_directive: '#1d6fd1',
   other: '#8a8fa3',
 }
+// Current names, plus the names older runs used, so their replays keep their colours.
 export const AGENT_COLORS: Record<string, string> = {
+  Sam: '#e4572e',
+  Sky: '#2e86ab',
+  Sol: '#8e5cd9',
+  Sage: '#17a398',
   Ada: '#e4572e',
   Bo: '#2e86ab',
   Cy: '#8e5cd9',
@@ -36,7 +45,7 @@ export const AGENT_COLORS: Record<string, string> = {
 export interface StartAgent {
   name: string
   cell: Cell
-  goal: GoalId | GoalId[] // solo: list
+  goal: GoalId | GoalId[] // old solo runs: list
   budget: number
   is_leader: boolean
   leader_style: 'free' | 'directive' | 'nondirective' | null
@@ -50,6 +59,9 @@ export interface RunStartedData {
   flip_ms: number
   time_limit_ms: number
   know_all_goals: boolean
+  target_zone?: number | null // zone the one_zone goal names; missing on older runs
+  seed?: number
+  min_actions?: number
   agents: StartAgent[]
   chairs: { id: number; cell: Cell; upside_down: boolean }[]
 }
@@ -59,6 +71,7 @@ export interface RunEndedData {
   solved: boolean
   met: GoalsMet
   duration_ms: number
+  completion?: number // 0..1, share of the minimum work done
 }
 
 export interface DecisionData {
@@ -109,6 +122,8 @@ export interface Instruction {
 // runs.result; written by measurement, may be null or partial before that.
 export interface RunResult {
   solved?: boolean
+  completion?: number
+  seed?: number
   duration_ms?: number
   end_reason?: string
   goals_met?: GoalsMet

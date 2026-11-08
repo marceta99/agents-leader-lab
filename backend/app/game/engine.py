@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from app.game.board import GRID, in_grid
 from app.game.goals import goals_met
+from app.game.solver import completion
 
 KINDS = ("move", "flip", "put_down", "continue", "wait")
 QUIET_EVENTS = {"decision", "notes", "cost"}  # do not count as a state change for all_waiting
@@ -37,6 +38,7 @@ def _is_int(v) -> bool:
 class Game:
     def __init__(self, layout, cfg: GameConfig, group: str = "none", seed: int = 0):
         self.layout, self.cfg, self.group = layout, cfg, group
+        self.seed = seed
         self.rng = random.Random(seed)
         self.t = 0
         self.ended: str | None = None
@@ -84,9 +86,10 @@ class Game:
         self.emit("run_started", {
             "layout_no": self.layout.n, "group": self.group, "grid": GRID,
             "cell_ms": cfg.cell_ms, "flip_ms": cfg.flip_ms, "time_limit_ms": cfg.time_limit_ms,
-            "know_all_goals": cfg.know_all_goals,
+            "know_all_goals": cfg.know_all_goals, "target_zone": self.layout.zone, "seed": self.seed,
+            "min_actions": self.layout.min_actions,
             "agents": [
-                {"name": n, "cell": list(a["cell"]), "goal": _copy(a["goal"]), "budget": a["budget"],
+                {"name": n, "cell": list(a["cell"]), "goal": a["goal"], "budget": a["budget"],
                  "is_leader": n == cfg.leader, "leader_style": cfg.leader_style if n == cfg.leader else None}
                 for n, a in self.agents.items()
             ],
@@ -100,8 +103,10 @@ class Game:
     def end(self, reason: str):
         if self.ended:
             return
-        met = goals_met(self.chairs.values())
-        self.emit("run_ended", {"reason": reason, "solved": reason == "solved", "met": met, "duration_ms": self.t})
+        met = goals_met(self.chairs.values(), self.layout.zone)
+        done = 1.0 if reason == "solved" else completion(self.chairs.values(), self.layout.min_actions, self.layout.zone)
+        self.emit("run_ended", {"reason": reason, "solved": reason == "solved", "met": met, "duration_ms": self.t,
+                                "completion": done})
         self.ended = reason
 
     def tick(self, now_ms: int):
@@ -134,7 +139,7 @@ class Game:
             self.end("all_waiting")
 
     def _after_change(self):
-        met = goals_met(self.chairs.values())
+        met = goals_met(self.chairs.values(), self.layout.zone)
         if met != self._met:
             self._met = met
             self.emit("goals", {"met": met})
@@ -190,21 +195,20 @@ class Game:
 
     def observation(self, agent: str) -> dict:
         a = self.agents[agent]
-        met = goals_met(self.chairs.values())
-        solo = isinstance(a["goal"], list)
+        met = goals_met(self.chairs.values(), self.layout.zone)
         left_ms = max(0, self.cfg.time_limit_ms - self.t)
         return {
             "t_ms": self.t,
             "time_left_s": -(-left_ms // 1000),
+            "target_zone": self.layout.zone,
             "you": {
                 "name": agent, "cell": list(a["cell"]), "state": a["state"], "holding": a["holding"],
                 "heading": dict(a["plan"]) if a["plan"] else None,
-                "budget_left": a["budget"], "goal": _copy(a["goal"]),
-                "goal_met": met if solo else met[a["goal"]],
+                "budget_left": a["budget"], "goal": a["goal"], "goal_met": met[a["goal"]],
             },
             "others": [
-                {"name": n, "cell": list(o["cell"]), "holding": o["holding"],
-                 "goal": _copy(o["goal"]) if self.cfg.know_all_goals else None}
+                {"name": n, "cell": list(o["cell"]), "holding": o["holding"], "budget_left": o["budget"],
+                 "goal": o["goal"] if self.cfg.know_all_goals else None}
                 for n, o in self.agents.items() if n != agent
             ],
             "chairs": [
@@ -359,7 +363,3 @@ class Game:
         a.update(state="idle", plan=None, step_to=None, due=None)
         self.emit("agent_stopped", {"agent": name, "cell": list(a["cell"]), "reason": reason})
         a["triggers"].append(text)
-
-
-def _copy(goal):
-    return list(goal) if isinstance(goal, list) else goal

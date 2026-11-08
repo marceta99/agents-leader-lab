@@ -7,7 +7,7 @@ import {
   errorText,
   GROUP_LABELS,
   groupLabel,
-  LEADER_TEXT,
+  leaderText,
   modelLabel,
   money,
   percent,
@@ -26,8 +26,8 @@ type Config = {
   budget: number[]
   add_leader: boolean
   runs: number
-  solo_baseline: boolean
   model: string
+  leader_prompts?: Record<string, string> | null
   cap_usd: number
   settings?: Record<string, unknown>
 }
@@ -35,6 +35,7 @@ type Detail = ExperimentSummary & { config: Config; stop_reason: string | null; 
 type GroupStats = {
   runs: number
   solved_rate: number | null
+  completion_avg: number | null
   leader_rate: number | null
   avg_duration_s: number | null
   richest_leader_rate: number | null
@@ -128,6 +129,9 @@ function RunRow({ r, showGroup, leader, firstOfLayout, cols }: { r: RunSummary; 
           <StatusBadge status={r.status} />
         </td>
         <td data-label="Solved">{r.solved == null ? '—' : r.solved ? '✓ Solved' : 'Not solved'}</td>
+        <td data-label="Completion" className="tnum">
+          {percent(r.completion)}
+        </td>
         <td data-label="Measured leader">
           {r.measured_leader ? <AgentName name={r.measured_leader} /> : r.status === 'finished' ? 'No leader' : '—'}
         </td>
@@ -160,7 +164,7 @@ function RunRow({ r, showGroup, leader, firstOfLayout, cols }: { r: RunSummary; 
 function RunsTable({ exp }: { exp: Detail }) {
   const showGroup = exp.runs.some((r) => r.group !== 'none')
   const leader = exp.config.add_leader
-  const cols = 6 + (showGroup ? 1 : 0) + (leader ? 1 : 0)
+  const cols = 7 + (showGroup ? 1 : 0) + (leader ? 1 : 0)
   return (
     <section className="block" aria-labelledby="runs-title">
       <div className="block-head">
@@ -178,6 +182,7 @@ function RunsTable({ exp }: { exp: Detail }) {
               {showGroup && <th scope="col">Group</th>}
               <th scope="col">Status</th>
               <th scope="col">Solved</th>
+              <th scope="col">Completion</th>
               <th scope="col">Measured leader</th>
               {leader && <th scope="col">Told to lead</th>}
               <th scope="col">Cost</th>
@@ -204,12 +209,12 @@ function RunsTable({ exp }: { exp: Detail }) {
   )
 }
 
-function GroupColumn({ g, s }: { g: string; s: GroupStats | undefined }) {
+function GroupColumn({ g, s, prompts }: { g: string; s: GroupStats | undefined; prompts?: Record<string, string> | null }) {
   return (
     <div className="gcol">
       <div className="gcol-head">
         <h3>{GROUP_LABELS[g]}</h3>
-        <p className="gcol-quote">{LEADER_TEXT[g]}</p>
+        <p className="gcol-quote">{leaderText(g, prompts)}</p>
         <p className="muted small-text tnum">{s ? `${s.runs} ${s.runs === 1 ? 'run' : 'runs'}` : 'No runs'}</p>
       </div>
       <div className="gcell">
@@ -230,6 +235,10 @@ function GroupColumn({ g, s }: { g: string; s: GroupStats | undefined }) {
       <div className="gcell">
         <span className="glabel">Solved</span>
         <span className="gvalue tnum">{percent(s?.solved_rate)}</span>
+      </div>
+      <div className="gcell">
+        <span className="glabel">Average completion</span>
+        <span className="gvalue tnum">{percent(s?.completion_avg)}</span>
       </div>
       <div className="gcell">
         <span className="glabel">Average time</span>
@@ -266,7 +275,6 @@ function ResultsSection({ exp }: { exp: Detail }) {
 
   const o = results?.overall
   const equalBudgets = new Set(exp.config.budget).size === 1
-  const solo = results?.groups.solo
 
   return (
     <section className="block" aria-labelledby="results-title">
@@ -344,12 +352,10 @@ function ResultsSection({ exp }: { exp: Detail }) {
                 <dt>Average game, min:sec</dt>
                 <dd className="tnum">{duration(o.avg_duration_s)}</dd>
               </div>
-              {solo && (
-                <div>
-                  <dt>Solo baseline solved</dt>
-                  <dd className="tnum">{percent(solo.solved_rate)}</dd>
-                </div>
-              )}
+              <div>
+                <dt>Average completion</dt>
+                <dd className="tnum">{percent(o.completion_avg)}</dd>
+              </div>
             </dl>
 
             <div className="results-split">
@@ -385,7 +391,7 @@ function ResultsSection({ exp }: { exp: Detail }) {
               <h3 className="compare-title">The four groups side by side</h3>
               <div className="compare">
                 {LEADER_GROUPS.map((g) => (
-                  <GroupColumn key={g} g={g} s={results.groups[g]} />
+                  <GroupColumn key={g} g={g} s={results.groups[g]} prompts={exp.config.leader_prompts} />
                 ))}
               </div>
             </div>
@@ -547,7 +553,7 @@ function Experiment() {
             <dd>{c.know_all_goals ? 'Everyone knows all' : 'Each knows its own'}</dd>
           </div>
           <div>
-            <dt>Budget, dealt at random</dt>
+            <dt>Budget, rotated across goals</dt>
             <dd className="tnum">{c.budget.join(' / ')}</dd>
           </div>
           <div>
@@ -560,10 +566,6 @@ function Experiment() {
               {c.runs}
               {c.add_leader ? ' per group' : ''}
             </dd>
-          </div>
-          <div>
-            <dt>Solo baseline</dt>
-            <dd>{c.solo_baseline ? 'On' : 'Off'}</dd>
           </div>
           <div>
             <dt>Model effort</dt>

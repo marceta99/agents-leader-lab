@@ -56,8 +56,9 @@ class Run(Base):
     experiment_id: Mapped[int | None] = mapped_column(
         ForeignKey("experiments.id", ondelete="CASCADE"), index=True, nullable=True  # null = dev scripted run
     )
-    group: Mapped[str] = mapped_column(String(16))  # none | free | directive | nondirective | solo
+    group: Mapped[str] = mapped_column(String(16))  # none | free | directive | nondirective (old data: solo)
     layout_no: Mapped[int] = mapped_column(Integer)
+    seed: Mapped[int | None] = mapped_column(Integer, nullable=True)  # names + listing order; null = layout_no
     # queued | running | measuring | finished | stopped | failed
     status: Mapped[str] = mapped_column(String(16), default="queued")
     end_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)

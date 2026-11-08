@@ -1,7 +1,7 @@
 from app.game.board import AGENTS, GOALS, in_grid
 from app.game.goals import goals_met
-from app.game.layouts import make_layout
-from app.game.solver import PLACEMENTS, min_actions
+from app.game.layouts import make_layout, roles
+from app.game.solver import PLACEMENTS, actions_left, completion, min_actions
 
 
 def chairs(cells, upside=False):
@@ -39,24 +39,48 @@ def test_solver_counts_in_place_chairs():
     assert min_actions(RING[:2] + [(0, 0), (3, 3), (7, 0), (4, 3), (0, 7), (3, 4)]) == 14
 
 
-def test_layout_deterministic():
-    a = make_layout(7, [9, 5, 3, 3])
-    make_layout(8, [9, 5, 3, 3])
-    assert make_layout(7, [9, 5, 3, 3]) == a
-    assert make_layout(8, [9, 5, 3, 3]) != a
-    solo = make_layout(7, [9, 5, 3, 3], solo=True)
-    assert solo.chairs == a.chairs and solo.agents == [("Ada", a.agents[0][1])]
-    assert solo.goals == {"Ada": GOALS} and solo.budgets == {"Ada": 20}
+def test_zone_goal_names_one_zone():
+    assert goals_met(chairs(RING), target_zone=3)["one_zone"] is True
+    assert goals_met(chairs(RING), target_zone=0)["one_zone"] is False
+    assert min_actions(RING, zone=3) == 8 and min_actions(RING, zone=0) == 16
+
+
+def test_actions_left_and_completion():
+    assert actions_left(chairs(RING, upside=True), 3) == 0
+    assert actions_left(chairs(RING), 3) == 8  # flips only
+    assert actions_left(chairs(RING), 0) == 16  # whole ring in the wrong zone
+    assert completion(chairs(RING), 16, 3) == 0.5 and completion(chairs(RING), 4, 0) == 0.0
+
+
+def test_layout_deterministic_and_seed_only_changes_names():
+    a = make_layout(7, [9, 5, 3, 3], seed=1)
+    assert make_layout(7, [9, 5, 3, 3], seed=1) == a
+    assert make_layout(8, [9, 5, 3, 3], seed=1) != a
+    b = next(make_layout(7, [9, 5, 3, 3], seed=s) for s in range(2, 50)
+             if make_layout(7, [9, 5, 3, 3], seed=s).agents[0][0] != a.agents[0][0])
+    assert b.chairs == a.chairs and b.zone == a.zone and b.min_actions == a.min_actions
+    by_goal = lambda lay: {g: (lay.budgets[n], dict(lay.agents)[n], n == lay.leader) for n, g in lay.goals.items()}
+    assert by_goal(a) == by_goal(b)  # same goal -> same budget, start cell and leader role, whatever the name
+
+
+def test_roles_rotate_over_layouts():
+    pairs = [roles(n) for n in range(1, 17)]
+    assert len(set(pairs)) == 16  # every (leader goal, rich goal) pair once
+    assert [p[0] for p in pairs[:4]] == GOALS and all(p[0] != p[1] for p in pairs[:12])
+    lay = make_layout(5, [9, 5, 3, 3], seed=3)
+    leader_goal, rich_goal = roles(5)
+    assert lay.goals[lay.leader] == leader_goal
+    assert lay.goals[max(lay.budgets, key=lay.budgets.get)] == rich_goal
 
 
 def test_layouts_1_to_200_in_14_16_range():
     for n in range(1, 201):
-        lay = make_layout(n, [9, 5, 3, 3])
-        assert 14 <= lay.min_actions <= 16
+        lay = make_layout(n, [9, 5, 3, 3], seed=n)
+        assert 14 <= lay.min_actions <= 16 and lay.zone in range(4)
         cells = [c for _, c in lay.chairs]
         assert len(set(cells)) == 8 and all(in_grid(c) for c in cells)
         assert [i for i, _ in lay.chairs] == list(range(1, 9))
-        assert [name for name, _ in lay.agents] == AGENTS
+        assert sorted(name for name, _ in lay.agents) == sorted(AGENTS)
         assert sorted(lay.goals.values()) == sorted(GOALS)
         assert sorted(lay.budgets.values()) == [3, 3, 5, 9]
         assert lay.leader in AGENTS

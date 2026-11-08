@@ -8,95 +8,99 @@ import pydantic
 import pytest
 
 from app.agents.llm import Decision, build_request, call_decision, remove_message
-from app.agents.prompts import GOAL_TEXT, LEADER_LINES, system_prompt
-from app.agents.render import render_chat
+from app.agents.prompts import LEADER_LINES, system_prompt
+from app.agents.render import render_chat, render_state
+from app.game.board import goal_text
 from app.pricing import cost_usd
 
 BANNED = re.compile(r"\b(lead\w*|team\w*|coordinat\w*|manag\w*|boss\w*)", re.I)
 CFG = {"cell_ms": 2000, "flip_ms": 2000, "time_limit_ms": 600_000, "heartbeat_ms": 10_000}
-GOALS = {"Ada": "circle", "Bo": "upside_down", "Cy": "one_zone", "Dee": "touching"}
+GOALS = {"Sam": "circle", "Sky": "upside_down", "Sol": "one_zone", "Sage": "touching"}
 
 
 def prompt(**kw):
-    args = dict(agent="Bo", goal="upside_down", budget=5, know_all_goals=False, others_goals=None,
-                leader_style=None, solo=False, cfg=CFG)
+    args = dict(agent="Sky", goal="upside_down", budget=5, know_all_goals=False, others_goals=None,
+                leader_line=None, cfg=CFG, zone=2)
     return system_prompt(**{**args, **kw})
 
 
 def obs():
     return {
-        "t_ms": 41200, "time_left_s": 559,
-        "you": {"name": "Bo", "cell": [3, 4], "state": "idle", "holding": None, "heading": None,
-                "budget_left": 4, "goal": "circle", "goal_met": False},
-        "others": [{"name": n, "cell": [0, i], "holding": None, "goal": None} for i, n in enumerate(["Ada", "Cy", "Dee"])],
-        "chairs": [{"id": i, "cell": [i - 1, 7], "upside_down": i == 3, "held_by": "Cy" if i == 2 else None}
+        "t_ms": 41200, "time_left_s": 559, "target_zone": 2,
+        "you": {"name": "Sky", "cell": [3, 4], "state": "idle", "holding": None, "heading": None,
+                "budget_left": 4, "goal": "one_zone", "goal_met": False},
+        "others": [{"name": n, "cell": [0, i], "holding": None, "budget_left": 6 - i, "goal": None}
+                   for i, n in enumerate(["Sam", "Sol", "Sage"])],
+        "chairs": [{"id": i, "cell": [i - 1, 7], "upside_down": i == 3, "held_by": "Sol" if i == 2 else None}
                    for i in range(1, 9)],
     }
 
 
 def chat(n):
-    return [{"id": i, "agent": "Ada", "text": f"msg {i}", "t": i} for i in range(1, n + 1)]
+    return [{"id": i, "agent": "Sam", "text": f"msg {i}", "t": i} for i in range(1, n + 1)]
 
 
 def test_prompt_has_no_leadership_words():
-    variants = [
-        prompt(),
-        prompt(know_all_goals=True, others_goals=GOALS),
-        prompt(solo=True, agent="Ada", goal=list(GOAL_TEXT), budget=20),
-        prompt(solo=True, agent="Ada", goal=list(GOAL_TEXT), budget=20, leader_style="free"),  # solo ignores leader
-    ]
+    variants = [prompt(), prompt(know_all_goals=True, others_goals=GOALS)]
     for p in variants:
         assert not BANNED.findall(p), BANNED.findall(p)
-    assert GOAL_TEXT["circle"] in variants[1] and GOAL_TEXT["touching"] in variants[1]
-    assert GOAL_TEXT["circle"] not in variants[0]
-    assert all(GOAL_TEXT[g] in variants[2] for g in GOAL_TEXT)
-    assert "shared chat" not in variants[2]
+    assert goal_text("circle") in variants[1] and goal_text("touching") in variants[1]
+    assert "zone 2 (the bottom-left part of the room)" in variants[1]
+    assert goal_text("circle") not in variants[0]
+    assert "You can see everyone's remaining actions" in variants[0]
 
 
 def test_leader_prompt_variants():
     base = prompt()
-    for style, line in LEADER_LINES.items():
-        p = prompt(leader_style=style)
+    for line in [*LEADER_LINES.values(), "Custom text from the experiment."]:
+        p = prompt(leader_line=line)
         assert p == base + "\n\n" + line
         assert not BANNED.findall(p.removesuffix(line))
 
 
+def test_state_shows_everyones_actions_and_target_zone():
+    text = render_state(obs(), [], None)
+    assert "- Sam: cell [0, 0] (zone 0), holding nothing, actions left: 6." in text
+    assert "- Sage: cell [0, 2] (zone 0), holding nothing, actions left: 4." in text
+    assert "Your goal: Move all the chairs to zone 2 (the bottom-left part of the room)." in text
+
+
 def test_request_shape_matches_contract():
-    r = build_request("claude-haiku-5-5", "SYS", obs(), ["Ada took chair 3."], chat(2), "my plan")
+    r = build_request("claude-haiku-5-5", "SYS", obs(), ["Sam took chair 3."], chat(2), "my plan")
     assert set(r) == {"model", "system", "messages"}
     assert r["model"] == "claude-haiku-5-5" and r["system"] == "SYS"
     assert len(r["messages"]) == 1 and r["messages"][0]["role"] == "user"
     content = r["messages"][0]["content"]
     assert [b["type"] for b in content] == ["text", "text"]
-    assert "my plan" in content[0]["text"] and "Ada took chair 3." in content[0]["text"]
+    assert "my plan" in content[0]["text"] and "Sam took chair 3." in content[0]["text"]
     assert content[1]["text"].startswith("Chat so far:\n")
     json.dumps(r)
 
 
 def test_chat_block_format_and_none():
     assert render_chat([]) == "Chat so far:\n(none)"
-    assert render_chat([{"id": 1, "agent": "Ada", "text": "hello"}, {"id": 2, "agent": "Bo", "text": "I will\nflip 3"}]) == \
-        "Chat so far:\n[m1] Ada: hello\n[m2] Bo: I will flip 3"
+    assert render_chat([{"id": 1, "agent": "Sam", "text": "hello"}, {"id": 2, "agent": "Sky", "text": "I will\nflip 3"}]) == \
+        "Chat so far:\n[m1] Sam: hello\n[m2] Sky: I will flip 3"
 
 
 def test_remove_message_exact_line_only():
     r = build_request("claude-haiku-5-5", "S", obs(), [], chat(11), None)
     out = remove_message(r, 1)
     text = out["messages"][0]["content"][1]["text"]
-    assert "[m1] " not in text and "[m10] Ada: msg 10" in text and "[m11] Ada: msg 11" in text
+    assert "[m1] " not in text and "[m10] Sam: msg 10" in text and "[m11] Sam: msg 11" in text
     assert text.count("\n") == 10
     assert r["messages"][0]["content"][1]["text"].startswith("Chat so far:\n[m1] ")  # original untouched
     one = build_request("claude-haiku-5-5", "S", obs(), [], chat(1), None)
     assert remove_message(one, 1)["messages"][0]["content"][1]["text"] == "Chat so far:\n(none)"
 
 
-def test_observation_render_contains_all_chairs_and_no_budgets_of_others():
+def test_observation_render_contains_all_chairs():
     text = build_request("claude-haiku-5-5", "S", obs(), [], [], None)["messages"][0]["content"][0]["text"]
     for i in range(1, 9):
         assert f"- Chair {i}: cell [{i - 1}, 7]" in text
-    assert "3*" in text and "upside down, free" in text and "held by Cy" in text
+    assert "3*" in text and "upside down, free" in text and "held by Sol" in text
     assert "Actions left: 4" in text
-    assert text.count("Actions left") == 1 and "budget" not in text.lower()
+    assert text.count("Actions left") == 1 and text.count("actions left") == 3 and "budget" not in text.lower()
 
 
 def fake_client(parse):

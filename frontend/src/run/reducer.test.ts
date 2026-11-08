@@ -117,7 +117,7 @@ describe('stateAt', () => {
   })
 
   it('notes keep the latest text per agent', () => {
-    const notes = EV.filter((e) => e.type === 'notes' && e.data.agent === 'Ada') as Extract<RunEvent, { type: 'notes' }>[]
-    expect(agent(1e9, 'Ada').notes).toBe(notes.at(-1)!.data.text)
+    const notes = EV.filter((e) => e.type === 'notes' && e.data.agent === 'Sam') as Extract<RunEvent, { type: 'notes' }>[]
+    expect(agent(1e9, 'Sam').notes).toBe(notes.at(-1)!.data.text)
   })
 })

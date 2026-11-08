@@ -18,28 +18,28 @@ The product rules are in `product-overview.md` and the build plan is in `plan-ag
 
   The frontend colours zones 0..3 with CSS vars `--z1..--z4`.
 - **Chairs:** ids `1..8`. Each chair has `upside_down: bool` and starts as `false`.
-- **Agents:** names `"Ada"`, `"Bo"`, `"Cy"`, `"Dee"`, always in that order. A solo run has one agent, `"Ada"`.
+- **Agents:** names `"Sam"`, `"Sky"`, `"Sol"`, `"Sage"` (short, gender-neutral). Each run's seed decides which name plays which goal and the order agents are listed in (prompts, observation, events). Older runs used `"Ada"`, `"Bo"`, `"Cy"`, `"Dee"`.
 - **Goals:** ids and the English text agents see.
 
   | Goal id | Text shown to agents |
   |---|---|
   | `circle` | "Arrange the chairs in a circle." |
   | `upside_down` | "Turn all the chairs upside down." |
-  | `one_zone` | "Move all the chairs to one part of the room (one zone)." |
+  | `one_zone` | "Move all the chairs to zone {z} (the {top-left\|top-right\|bottom-left\|bottom-right} part of the room)." The target zone `z` is fixed per layout. |
   | `touching` | "Make all the chairs touch each other." |
 
-- **Groups:** `none | free | directive | nondirective | solo`.
+- **Groups:** `none | free | directive | nondirective` (older data may hold `solo`, which is no longer created).
 - **Adjacency:** distance and adjacency are always orthogonal (up, down, left, right). Diagonals never count.
 
 ## Game engine API (`backend/app/game/`, pure Python, no I/O)
 
 ```python
-from app.game.layouts import Layout, make_layout          # make_layout(n: int, budgets: list[int], solo: bool=False) -> Layout
+from app.game.layouts import Layout, make_layout          # make_layout(n: int, budgets: list[int], seed: int = 0) -> Layout
 from app.game.engine import Game, GameConfig
 
 cfg = GameConfig(cell_ms=2000, flip_ms=2000, time_limit_ms=600_000, heartbeat_ms=10_000,
-                 know_all_goals=False, leader=None | "Bo", leader_style=None | "free" | "directive" | "nondirective")
-game = Game(layout, cfg, group="none", seed=layout_no)   # game time starts at 0 ms
+                 know_all_goals=False, leader=None | "Sky", leader_style=None | "free" | "directive" | "nondirective")
+game = Game(layout, cfg, group="none", seed=run_seed)   # game time starts at 0 ms
 game.start()                 # emits run_started
 game.tick(now_ms)            # advance the simulation to now_ms (monotonic, called ~every 100 ms by the runner)
 game.decide(agent, kind, chair=None, cell=None) -> tuple[str, str | None]   # (outcome, reason)
@@ -54,20 +54,21 @@ game.record_decision(agent, kind, now_ms)  # runner calls after each decision (a
 game.end(reason)             # force end (e.g. "call_limit", "stopped")
 game.ended -> str | None     # end reason once ended
 game.events -> list[dict]    # all events so far; game.drain_events() -> list[dict] returns new ones since last drain
-game.chat -> list[dict]      # [{"id": 1, "agent": "Ada", "text": "...", "t": 1234}]
+game.chat -> list[dict]      # [{"id": 1, "agent": "Sam", "text": "...", "t": 1234}]
 ```
 
 `Layout` fields:
 
 - `n`
 - `chairs: list[(id, (x, y))]`
-- `agents: list[(name, (x, y))]`
+- `agents: list[(name, (x, y))]`, in the run's shuffled listing order
 - `goals: dict[name, goal_id]`
-- `budgets: dict[name, int]` (the user's 4 numbers dealt by the seed)
-- `leader: name`, picked from its own sub-seed (used only by leader groups)
-- `min_actions: int`, which is in 14..16 for team layouts
+- `budgets: dict[name, int]`
+- `leader: name`, the agent with the layout's leader goal (used only by leader groups)
+- `min_actions: int`, in 14..16, counted for a ring inside the target zone
+- `zone: int`, the zone the `one_zone` goal names
 
-Solo layout: one agent `"Ada"` with all 4 goals. Its budget is the sum of the user's budgets, and `goals["Ada"]` is the list of all 4 goal ids.
+What is fixed by `n` (`LAYOUT_VERSION = 2`): chair cells, one start cell per goal, the target zone, and the roles. `roles(n)` gives `(leader goal, rich goal)`: the leader goal cycles `circle, upside_down, one_zone, touching` every layout, and the rich goal is offset by 1, 2, 3, 0 in blocks of 4 layouts, so layouts 1..16 hold every pair once. The largest budget goes to the rich goal and the rest follow in goal order. What the run seed changes: which name plays which goal, and the listing order. So a goal keeps its start cell, budget and leader role whatever name plays it.
 
 ### Decision semantics (engine)
 
@@ -103,20 +104,21 @@ Solo layout: one agent `"Ada"` with all 4 goals. Its budget is the sum of the us
 {
   "t_ms": 41200,
   "time_left_s": 559,
+  "target_zone": 2,
   "you": {
-    "name": "Bo", "cell": [3, 4], "state": "idle|walking|carrying|flipping",
+    "name": "Sky", "cell": [3, 4], "state": "idle|walking|carrying|flipping",
     "holding": 5,                      // chair id or null
     "heading": {"kind": "move", "chair": 5, "cell": [1, 1]},   // or null
     "budget_left": 4,
-    "goal": "circle",                  // solo: list of goal ids
-    "goal_met": false                  // solo: dict goal_id -> bool
+    "goal": "circle",
+    "goal_met": false
   },
-  "others": [{"name": "Ada", "cell": [0, 0], "holding": null, "goal": null}],   // goal only when know_all_goals
+  "others": [{"name": "Sam", "cell": [0, 0], "holding": null, "budget_left": 6, "goal": null}],   // goal only when know_all_goals
   "chairs": [{"id": 1, "cell": [2, 2], "upside_down": false, "held_by": null}]
 }
 ```
 
-Agents never see other agents' budgets, notes, destinations or leader status. Unit tests must guard this.
+Every agent sees everyone's remaining actions. Agents never see other agents' notes, destinations or leader status. Unit tests must guard this.
 
 ## Events (engine → DB `run_events` → WebSocket → frontend reducer)
 
@@ -128,7 +130,7 @@ Wire shape: `{"seq": 17, "t": 41200, "type": "chair_taken", "data": {...}}`.
 
 | type | data | notes |
 |---|---|---|
-| `run_started` | `{"layout_no", "group", "grid": 8, "cell_ms", "flip_ms", "time_limit_ms", "know_all_goals", "agents": [{"name","cell","goal","budget","is_leader","leader_style"}], "chairs": [{"id","cell","upside_down"}]}` | Viewer-only fields included (goals, budgets, leader). Solo: `goal` is a list. |
+| `run_started` | `{"layout_no", "group", "grid": 8, "cell_ms", "flip_ms", "time_limit_ms", "know_all_goals", "target_zone", "seed", "min_actions", "agents": [{"name","cell","goal","budget","is_leader","leader_style"}], "chairs": [{"id","cell","upside_down"}]}` | Viewer-only fields included (goals, budgets, leader). |
 | `agent_step` | `{"agent", "from": [x,y], "to": [x,y], "dur_ms"}` | One per cell. The event's `t` is the start of the step. If the agent is carrying, the chair moves with it. |
 | `agent_stopped` | `{"agent", "cell", "reason"}` | Walk interrupted (`chair_taken`, `cell_occupied`). |
 | `chair_taken` | `{"agent", "chair", "for": "move"\|"flip", "budget_left"}` | The agent now holds or locks the chair. |
@@ -140,7 +142,7 @@ Wire shape: `{"seq": 17, "t": 41200, "type": "chair_taken", "data": {...}}`.
 | `decision` | `{"agent", "n", "kind", "chair", "cell", "outcome", "reason"}` | Emitted by the runner after each LLM decision. `outcome`: `ok`, `invalid`, `skipped_invalid`, `skipped_chose` (for `wait`/`continue` when idle), `ignored_busy`. |
 | `goals` | `{"met": {"circle": bool, "upside_down": bool, "one_zone": bool, "touching": bool}}` | Emitted at start and whenever any value changes. |
 | `cost` | `{"usd"}` | Cumulative run cost, emitted by the runner after LLM calls. Optional for the viewer. |
-| `run_ended` | `{"reason", "solved", "met": {...}, "duration_ms"}` | Always the last event. |
+| `run_ended` | `{"reason", "solved", "met": {...}, "duration_ms", "completion"}` | Always the last event. `completion` (0..1) = `1 - actions_left / min_actions`, clamped; `actions_left` = chairs not yet upside down + chairs not on the best ring in the target zone. 1.0 when solved. |
 
 The frontend rebuilds the full board at any time `t` from the events with `t <= t` (`frontend/src/run/reducer.ts`). There is no other source of truth.
 
@@ -155,7 +157,7 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
     "system": "<system prompt>",
     "messages": [{"role": "user", "content": [
       {"type": "text", "text": "<state block: time, you, others, chairs grid + list, notes, what happened>"},
-      {"type": "text", "text": "Chat so far:\n[m1] Ada: hello\n[m2] Bo: I will flip chair 3"}
+      {"type": "text", "text": "Chat so far:\n[m1] Sam: hello\n[m2] Sky: I will flip chair 3"}
     ]}]
   }
   ```
@@ -176,8 +178,8 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 - **Functions** in `app/agents/llm.py`:
   - `async def call_decision(client, request: dict, effort: str) -> CallResult`, where `CallResult` has `decision: Decision | None`, `raw: dict`, `input_tokens: int`, `output_tokens: int`, `cost_usd: float` and `error: str | None`. It runs one call, with no retry of invalid output; retrying is the runner's job.
   - `def build_request(model, system, observation, triggers, chat, notes) -> dict`.
-  - `def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_style, solo, cfg) -> str`.
-- **Prompt wording.** The system prompt never contains "leader", "lead", "team", "coordinate", "manager" or "boss", except for the leader agent's one extra line:
+  - `def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_line, cfg, zone=None) -> str`. `others_goals` is in listing order; `leader_line` is the leader's extra line or `None`.
+- **Prompt wording.** The system prompt never contains "leader", "lead", "team", "coordinate", "manager" or "boss", except for the leader agent's one extra line. These are the defaults; an experiment may replace them (`config["leader_prompts"]`, set on the New experiment form):
 
   | Leader style | Extra line |
   |---|---|
@@ -191,19 +193,19 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 
 ```json
 {
-  "solved": true, "duration_ms": 312000, "end_reason": "solved",
+  "solved": true, "completion": 1.0, "seed": 1288342217, "duration_ms": 312000, "end_reason": "solved",
   "goals_met": {"circle": true, "upside_down": true, "one_zone": true, "touching": true},
-  "leader_agent": "Bo",            // agent told to lead; null in none/solo groups
-  "richest_agent": "Ada",          // unique max budget; null on a tie (e.g. 5/5/5/5)
+  "leader_agent": "Sky",           // agent told to lead; null in the none group
+  "richest_agent": "Sam",          // unique max budget; null on a tie (e.g. 6/6/6/6)
   "leader_is_richest": false,      // null if either is null
-  "measured_leader": "Bo",         // null = no leader
-  "influence": {"Ada": 0.0, "Bo": 1.67, "Cy": 0.0, "Dee": 0.33},          // given
-  "influence_received": {"Ada": 1.0, "Bo": 0.0, "Cy": 0.67, "Dee": 0.33},
-  "influence_share": {"Ada": 0.0, "Bo": 0.83, "Cy": 0.0, "Dee": 0.17},    // all 0 if total is 0
-  "instructions": [{"message_id": 3, "from": "Bo", "to": "Cy", "action": {"kind": "flip", "chair": 2, "cell": null},
+  "measured_leader": "Sky",        // null = no leader
+  "influence": {"Sam": 0.0, "Sky": 1.67, "Sol": 0.0, "Sage": 0.33},          // given
+  "influence_received": {"Sam": 1.0, "Sky": 0.0, "Sol": 0.67, "Sage": 0.33},
+  "influence_share": {"Sam": 0.0, "Sky": 0.83, "Sol": 0.0, "Sage": 0.17},    // all 0 if total is 0
+  "instructions": [{"message_id": 3, "from": "Sky", "to": "Sol", "action": {"kind": "flip", "chair": 2, "cell": null},
                     "followed": true, "p_with": 1.0, "p_without": 0.33, "score": 0.67}],
   "styles": {"3": "directive", "4": "non_directive"},     // message id (string) -> directive | non_directive | other
-  "style_mix": {"Bo": {"directive": 2, "non_directive": 1, "other": 0}},
+  "style_mix": {"Sky": {"directive": 2, "non_directive": 1, "other": 0}},
   "invalid_share": 0.02,           // share of decisions that ended skipped_invalid
   "partial": false,                // true if measurement was cut short (cap reached)
   "measure_cost_usd": 0.04
@@ -217,15 +219,18 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 ## Experiment config (`experiments.config`)
 
 ```json
-{"name": "...", "know_all_goals": false, "budget": [5, 5, 5, 5], "add_leader": false, "runs": 10,
- "solo_baseline": false, "model": "claude-haiku-5-5", "cap_usd": 5.0,
- "settings": {...global snapshot...}, "layout_version": 1}
+{"name": "Goals hidden · Equal budget 6 · No leader", "know_all_goals": false, "budget": [6, 6, 6, 6],
+ "add_leader": false, "runs": 10, "model": "claude-haiku-5-5", "cap_usd": 5.0,
+ "leader_prompts": null,          // with a leader: {"free": "...", "directive": "...", "nondirective": "..."}
+ "settings": {...global snapshot...}, "layout_version": 2}
 ```
 
+- **Name:** generated from the config (goals known/hidden, budget, leader groups); there is no name field.
+- **Leader prompts:** only with a leader. Missing or blank groups get the default; each at most 1000 characters.
 - **Validation:** budget has 4 ints in `0..budget_max_per_agent` with sum `>= budget_min_total`; runs in `1..max_runs`; model in `settings.models`; cap > 0.
 - **Rows:** all `runs` rows are created at launch. For each layout `i` in `1..runs`:
   - one run per group (`none` only, or `none, free, directive, nondirective` with a leader);
-  - plus `solo` if solo baseline is on.
+  - each run gets a random `seed` (`runs.seed`), also written to `run_started` and `runs.result`.
 
 ## REST + WebSocket API
 
@@ -247,8 +252,8 @@ All paths are same-origin. Auth is an httpOnly cookie `session` (a JWT). Errors 
 
 | Endpoint | Request | Response |
 |---|---|---|
-| `POST /api/experiments/estimate` | config fields without `name` | `{runs_total, calls_estimate, usd_estimate}` |
-| `POST /api/experiments` | `{name, know_all_goals, budget, add_leader, runs, solo_baseline, model, cap_usd}` | `ExperimentDetail`. 400 if there is no key. |
+| `POST /api/experiments/estimate` | config fields without `leader_prompts` | `{runs_total, calls_estimate, usd_estimate}` |
+| `POST /api/experiments` | `{know_all_goals, budget, add_leader, runs, model, cap_usd, leader_prompts?}` | `ExperimentDetail`. 400 if there is no key. |
 | `GET /api/experiments` | | `[ExperimentSummary]`, newest first |
 | `GET /api/experiments/{id}` | | `ExperimentDetail` |
 | `POST /api/experiments/{id}/stop` | | 204 |
@@ -261,7 +266,7 @@ Response shapes:
 
 - `ExperimentSummary`: `{id, name, status, created_at, runs_done, runs_total, spent_usd, cap_usd, model, add_leader, is_demo}`.
 - `ExperimentDetail`: `ExperimentSummary` + `{config, stop_reason, runs: [RunSummary]}`.
-- `RunSummary`: `{id, group, layout_no, status, end_reason, solved, measured_leader, leader_agent, cost_usd}`.
+- `RunSummary`: `{id, group, layout_no, status, end_reason, solved, completion, seed, measured_leader, leader_agent, cost_usd}`.
 - `ExperimentResults`:
 
   ```json
@@ -270,7 +275,7 @@ Response shapes:
    "excluded": n}
   ```
 
-  `GroupStats` is `{runs, solved_rate, leader_rate, avg_duration_s, richest_leader_rate, leader_became_measured_rate, leader_share_avg, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
+  `GroupStats` is `{runs, solved_rate, completion_avg, leader_rate, avg_duration_s, richest_leader_rate, leader_became_measured_rate, leader_share_avg, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
 
 **Runs**
 

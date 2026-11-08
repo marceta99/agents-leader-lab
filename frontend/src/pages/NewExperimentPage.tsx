@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useMe } from '../auth'
-import { errorText, GROUP_LABELS, LEADER_TEXT, MODELS, money } from '../format'
+import { errorText, experimentName, GROUP_LABELS, LEADER_DEFAULTS, LEADER_MAX, leaderText, MODELS, money } from '../format'
 import RequireAuth from '../RequireAuth'
 import Field from '../ui/Field'
 import './pages.css'
@@ -60,13 +60,11 @@ function Choice({
 
 function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [nameTouched, setNameTouched] = useState(false)
   const [knowAll, setKnowAll] = useState(false)
-  const [budget, setBudget] = useState(['5', '5', '5', '5'])
+  const [budget, setBudget] = useState(['6', '6', '6', '6'])
   const [addLeader, setAddLeader] = useState(false)
+  const [leaderPrompts, setLeaderPrompts] = useState<Record<string, string>>(LEADER_DEFAULTS)
   const [runs, setRuns] = useState('')
-  const [solo, setSolo] = useState(false)
   const [model, setModel] = useState(MODELS[0].id)
   const [cap, setCap] = useState('5')
   const [estimate, setEstimate] = useState<Estimate | null>(null)
@@ -85,20 +83,26 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const runsError = !isInt(runs) || runsN < 1 || runsN > MAX_RUNS ? `Enter a whole number from 1 to ${MAX_RUNS}.` : ''
   const capN = Number(cap)
   const capError = !(capN > 0) ? 'Enter an amount above $0, for example 5.' : ''
+  const promptErrors = Object.fromEntries(
+    Object.entries(leaderPrompts).map(([g, t]) => [
+      g,
+      !addLeader ? '' : !t.trim() ? 'Write what the leader is told, or reset to the default.' : t.length > LEADER_MAX ? `At most ${LEADER_MAX} characters.` : '',
+    ]),
+  )
+  const promptError = Object.values(promptErrors).some(Boolean)
   const valid = !budgetError && !runsError && !capError
-  const nameError = !name.trim() ? 'Give the experiment a name.' : ''
 
   const config = {
     know_all_goals: knowAll,
     budget: nums,
     add_leader: addLeader,
     runs: runsN,
-    solo_baseline: solo,
     model,
     cap_usd: capN,
   }
   const configKey = JSON.stringify(config)
-  const localRunsTotal = runsError ? null : runsN * (addLeader ? 4 : 1) + (solo ? runsN : 0)
+  const localRunsTotal = runsError ? null : runsN * (addLeader ? 4 : 1)
+  const name = budgetError ? '—' : experimentName(config)
 
   // Debounced cost estimate, refreshed whenever the config changes.
   useEffect(() => {
@@ -127,20 +131,18 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const overCap = !!shownEstimate && shownEstimate.usd_estimate > capN
   const blocker = !hasKey
     ? 'Add your API key to launch.'
-    : nameError
-      ? 'Add a name to launch.'
-      : !valid
-        ? 'Fix the highlighted fields to launch.'
-        : ''
+    : !valid || promptError
+      ? 'Fix the highlighted fields to launch.'
+      : ''
 
   async function launch(e: FormEvent) {
     e.preventDefault()
-    setNameTouched(true)
     if (blocker) return
     setBusy(true)
     setError('')
     try {
-      const exp = await api<{ id: number }>('/api/experiments', { json: { name: name.trim(), ...config } })
+      const json = { ...config, leader_prompts: addLeader ? leaderPrompts : null }
+      const exp = await api<{ id: number }>('/api/experiments', { json })
       navigate(`/experiments/${exp.id}`, { state: { launched: true } })
     } catch (err) {
       setError(errorText(err))
@@ -158,21 +160,6 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   return (
     <form className="new-exp" onSubmit={launch} noValidate>
       <div className="panel form-sheet">
-        <Section id="s-name" title="Name" intro={<p>Something you will recognise later, such as the budget you test.</p>}>
-          <Field label="Experiment name" error={nameTouched ? nameError : ''}>
-            {(c) => (
-              <input
-                {...c}
-                maxLength={200}
-                placeholder="Budget spread 9/5/3/3"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => setNameTouched(true)}
-              />
-            )}
-          </Field>
-        </Section>
-
         <Section
           id="s-goals"
           title="Goals"
@@ -193,8 +180,8 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
           title="Budget"
           intro={
             <p>
-              Actions each agent can spend in a run. Before every run the four numbers are dealt to the agents at random,
-              so no name is always the rich one.
+              Actions each agent can spend in a run. The largest number moves to a different goal from layout to
+              layout, and names are shuffled every run, so no goal or name is always the rich one.
             </p>
           }
         >
@@ -239,8 +226,8 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
           title="Leader"
           intro={
             <p>
-              Off, the experiment watches whether a leader emerges on its own. On, one agent is picked at random and told
-              to lead. The other three are not told.
+              Off, the experiment watches whether a leader emerges on its own. On, one agent is told to lead. Which goal
+              gets the leader moves from layout to layout. The other three are not told.
             </p>
           }
         >
@@ -255,13 +242,40 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
             <div className="groups-preview">
               <p className="groups-note">
                 <span className="chip">Cost ×4</span> Each group plays every run, so the experiment costs four times as
-                much. What the leader agent is told:
+                much. What the leader agent is told, added at the end of its instructions. Edit any of them:
               </p>
               <ol className="group-list">
-                {Object.entries(LEADER_TEXT).map(([g, text]) => (
+                <li>
+                  <strong>{GROUP_LABELS.none}</strong>
+                  <span>{leaderText('none')}</span>
+                </li>
+                {Object.keys(LEADER_DEFAULTS).map((g) => (
                   <li key={g}>
-                    <strong>{GROUP_LABELS[g]}</strong>
-                    <span>{text}</span>
+                    <Field
+                      label={GROUP_LABELS[g]}
+                      error={promptErrors[g]}
+                      hint={
+                        leaderPrompts[g] !== LEADER_DEFAULTS[g] ? (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => setLeaderPrompts({ ...leaderPrompts, [g]: LEADER_DEFAULTS[g] })}
+                          >
+                            Reset to default
+                          </button>
+                        ) : undefined
+                      }
+                    >
+                      {(c) => (
+                        <textarea
+                          {...c}
+                          rows={3}
+                          maxLength={LEADER_MAX}
+                          value={leaderPrompts[g]}
+                          onChange={(e) => setLeaderPrompts({ ...leaderPrompts, [g]: e.target.value })}
+                        />
+                      )}
+                    </Field>
                   </li>
                 ))}
               </ol>
@@ -298,16 +312,6 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
               />
             )}
           </Field>
-          <label className="switch-row">
-            <input type="checkbox" checked={solo} onChange={(e) => setSolo(e.target.checked)} />
-            <span>
-              <strong>Add solo baseline</strong>
-              <span className="muted">
-                One agent gets all four goals and the whole team's actions and plays alone, once per layout. It shows
-                whether the model can solve the puzzle at all.
-              </span>
-            </span>
-          </label>
         </Section>
 
         <Section id="s-model" title="Model" intro={<p>Every agent in every run uses this model. Cost is relative to Haiku.</p>}>
@@ -330,6 +334,10 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
 
       <aside className="panel summary" aria-labelledby="summary-title">
         <h2 id="summary-title">Before you launch</h2>
+        <p className="summary-name">
+          <span className="muted small-text">Name</span>
+          <strong>{name}</strong>
+        </p>
         <dl className="summary-figures">
           <div>
             <dt>Runs in total</dt>

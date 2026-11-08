@@ -1,4 +1,5 @@
 import math
+import random
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from app import scheduler
 from app.db import get_db
 from app.deps import current_user
 from app.estimate import estimate
+from app.agents.prompts import LEADER_LINES
 from app.game.layouts import LAYOUT_VERSION
 from app.models import ApiKey, Decision, Experiment, Run, RunEvent, User
 from app.pricing import PRICES
@@ -19,18 +21,42 @@ router = APIRouter()
 LEADER_GROUPS = ["none", "free", "directive", "nondirective"]
 
 
+MAX_LEADER_PROMPT = 1000
+
+
 class ConfigIn(BaseModel):
     know_all_goals: bool = False
-    budget: list = [5, 5, 5, 5]
+    budget: list = [6, 6, 6, 6]
     add_leader: bool = False
     runs: int
-    solo_baseline: bool = False
     model: str = "claude-haiku-5-5"
     cap_usd: float = 5.0
 
 
 class ExperimentIn(ConfigIn):
-    name: str
+    leader_prompts: dict[str, str] | None = None  # free / directive / nondirective -> text; missing = default
+
+
+def experiment_name(c: ConfigIn) -> str:
+    b = c.budget
+    budget = f"Equal budget {b[0]}" if len(set(b)) == 1 else "Budget " + "-".join(str(v) for v in sorted(b, reverse=True))
+    goals = "Goals known" if c.know_all_goals else "Goals hidden"
+    return f"{goals} · {budget} · {'Leader groups' if c.add_leader else 'No leader'}"
+
+
+def _leader_prompts(body: ExperimentIn) -> dict[str, str] | None:
+    if not body.add_leader:
+        return None
+    given = body.leader_prompts or {}
+    if set(given) - set(LEADER_LINES):
+        raise HTTPException(422, "Leader prompts can only be set for free, directive and nondirective")
+    out = {}
+    for g, default in LEADER_LINES.items():
+        text = (given.get(g) or "").strip() or default
+        if len(text) > MAX_LEADER_PROMPT:
+            raise HTTPException(422, f"Each leader prompt must be at most {MAX_LEADER_PROMPT} characters")
+        out[g] = text
+    return out
 
 
 def _validate(c: ConfigIn, s: dict) -> None:
@@ -78,19 +104,19 @@ async def estimate_cost(body: ConfigIn, _: User = Depends(current_user), db: Asy
 
 @router.post("/api/experiments")
 async def create_experiment(body: ExperimentIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    name = body.name.strip()
-    if not name or len(name) > 200:
-        raise HTTPException(422, "Give the experiment a name (at most 200 characters)")
     s = await get_settings(db)
     _validate(body, s)
+    name = experiment_name(body)
     if await db.get(ApiKey, user.id) is None:
         raise HTTPException(400, "Add your Anthropic API key first")
-    config = {**body.model_dump(), "name": name, "settings": s, "layout_version": LAYOUT_VERSION}
+    config = {**body.model_dump(), "leader_prompts": _leader_prompts(body), "name": name, "settings": s,
+              "layout_version": LAYOUT_VERSION}
     exp = Experiment(user_id=user.id, name=name, config=config, status="queued", cap_usd=body.cap_usd)
     db.add(exp)
     await db.flush()
-    groups = (LEADER_GROUPS if body.add_leader else ["none"]) + (["solo"] if body.solo_baseline else [])
-    runs = [Run(experiment_id=exp.id, group=g, layout_no=i, status="queued", result={})
+    groups = LEADER_GROUPS if body.add_leader else ["none"]
+    # Each run gets its own seed: which name plays which goal, and the order agents are listed in prompts.
+    runs = [Run(experiment_id=exp.id, group=g, layout_no=i, seed=random.randrange(2**31), status="queued", result={})
             for i in range(1, body.runs + 1) for g in groups]
     db.add_all(runs)
     await db.commit()

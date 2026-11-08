@@ -4,8 +4,9 @@ import csv
 import io
 import zipfile
 
-GROUP_ORDER = ["none", "free", "directive", "nondirective", "solo"]
-AGENTS = ["Ada", "Bo", "Cy", "Dee"]
+from app.game.board import AGENTS
+
+GROUP_ORDER = ["none", "free", "directive", "nondirective"]
 DONE = {"finished", "stopped", "failed"}
 STYLES = ("directive", "non_directive", "other")
 
@@ -18,7 +19,8 @@ def run_summary(run) -> dict:
     r = run.result or {}
     return {
         "id": run.id, "group": run.group, "layout_no": run.layout_no, "status": run.status,
-        "end_reason": run.end_reason, "solved": r.get("solved"), "measured_leader": r.get("measured_leader"),
+        "end_reason": run.end_reason, "solved": r.get("solved"), "completion": r.get("completion"),
+        "seed": run.seed, "measured_leader": r.get("measured_leader"),
         "leader_agent": r.get("leader_agent"), "cost_usd": run.cost_usd,
     }
 
@@ -41,6 +43,7 @@ def _group_stats(results: list[dict]) -> dict:
     with_leader = [r for r in results if r.get("leader_agent")]
     richest = [r for r in results if r.get("richest_agent") and r.get("measured_leader")]
     durations = [r["duration_ms"] / 1000 for r in results if r.get("duration_ms") is not None]
+    completions = [r["completion"] for r in results if r.get("completion") is not None]
     shares = [(r.get("influence_share") or {}).get(r["leader_agent"], 0.0) for r in with_leader]
     mix = dict.fromkeys(STYLES, 0)
     for r in results:
@@ -50,6 +53,7 @@ def _group_stats(results: list[dict]) -> dict:
     return {
         "runs": len(results),
         "solved_rate": _rate(sum(bool(r.get("solved")) for r in results), len(results)),
+        "completion_avg": sum(completions) / len(completions) if completions else None,
         "leader_rate": _rate(sum(bool(r.get("measured_leader")) for r in results), len(results)),
         "avg_duration_s": sum(durations) / len(durations) if durations else None,
         "richest_leader_rate": _rate(sum(r["measured_leader"] == r["richest_agent"] for r in richest), len(richest)),
@@ -119,7 +123,8 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
         dur = res.get("duration_ms")
         share = res.get("influence_share") or {}
         run_rows.append([
-            run.id, run.group, run.layout_no, run.status, run.end_reason, res.get("solved"),
+            run.id, run.group, run.layout_no, run.seed, run.status, run.end_reason, res.get("solved"),
+            res.get("completion"),
             dur / 1000 if dur is not None else None, res.get("measured_leader"), res.get("leader_agent"),
             res.get("richest_agent"), res.get("leader_is_richest"), *(share.get(a) for a in AGENTS), run.cost_usd,
         ])
@@ -140,7 +145,7 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("runs.csv", _csv(
-            ["run_id", "group", "layout_no", "status", "end_reason", "solved", "duration_s", "measured_leader",
+            ["run_id", "group", "layout_no", "seed", "status", "end_reason", "solved", "completion", "duration_s", "measured_leader",
              "leader_agent", "richest_agent", "leader_is_richest", *(f"influence_share_{a}" for a in AGENTS),
              "cost_usd"], run_rows))
         z.writestr("messages.csv", _csv(

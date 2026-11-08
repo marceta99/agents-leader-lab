@@ -168,42 +168,42 @@ async def test_one_call_in_flight_per_agent(auth_client, monkeypatch):
     await add_key()
     exp, runs = await wait_exp(await create(auth_client))
     assert runs[0].status == "finished" and runs[0].end_reason == "call_limit"
-    assert stats["max"] == {"Ada": 1, "Bo": 1, "Cy": 1, "Dee": 1}
+    assert stats["max"] == {"Sam": 1, "Sky": 1, "Sol": 1, "Sage": 1}
     # messages that arrived during a slow call are all in the single follow-up call
     assert max(t.count("New chat message from") for t in seen) >= 2
     assert runs[0].cost_usd > 0 and exp.spent_usd == pytest.approx(runs[0].cost_usd)
-    rows = await decisions(runs[0].id, "Ada")
+    rows = await decisions(runs[0].id, "Sam")
     assert [d.seq for d in rows] == list(range(1, len(rows) + 1))
 
 
 async def test_invalid_then_valid_retry(auth_client, monkeypatch):
     def behave(agent, kw):
-        if agent == "Ada" and "could not be used" not in text_of(kw):
+        if agent == "Sam" and "could not be used" not in text_of(kw):
             return Decision(action="move", chair=99, x=1, y=1)
         return Decision(action="wait")
     use_client(monkeypatch, behave)
     await add_key()
     _, runs = await wait_exp(await create(auth_client))
     assert runs[0].status == "finished" and runs[0].end_reason == "all_waiting"
-    ada = await decisions(runs[0].id, "Ada")
+    ada = await decisions(runs[0].id, "Sam")
     assert [d.outcome for d in ada[:2]] == ["invalid", "skipped_chose"]
     retry_text = text_of(ada[1].request)
     assert "Your last answer could not be used: Chair 99 does not exist." in retry_text
-    evs = [e.data for e in await events(runs[0].id) if e.type == "decision" and e.data["agent"] == "Ada"]
+    evs = [e.data for e in await events(runs[0].id) if e.type == "decision" and e.data["agent"] == "Sam"]
     assert evs[0]["outcome"] == "invalid" and evs[0]["n"] == 1 and evs[1]["outcome"] == "skipped_chose"
 
 
 async def test_invalid_twice_skipped(auth_client, monkeypatch):
     def behave(agent, kw):
-        return Decision(action="flip", chair=99) if agent == "Ada" else Decision(action="wait")
+        return Decision(action="flip", chair=99) if agent == "Sam" else Decision(action="wait")
     use_client(monkeypatch, behave)
     await add_key()
     _, runs = await wait_exp(await create(auth_client))
     assert runs[0].status == "finished"
-    ada = await decisions(runs[0].id, "Ada")
+    ada = await decisions(runs[0].id, "Sam")
     assert [d.outcome for d in ada[:2]] == ["invalid", "skipped_invalid"]
     evs = await events(runs[0].id)
-    assert not [e for e in evs if e.type == "chair_taken" and e.data["agent"] == "Ada"]  # no budget spent
+    assert not [e for e in evs if e.type == "chair_taken" and e.data["agent"] == "Sam"]  # no budget spent
 
 
 async def test_rate_limit_is_retried_later_not_invalid(auth_client, monkeypatch):
@@ -211,8 +211,8 @@ async def test_rate_limit_is_retried_later_not_invalid(auth_client, monkeypatch)
     seen = set()
 
     def behave(agent, kw):
-        if agent == "Ada" and "Ada" not in seen:
-            seen.add("Ada")
+        if agent == "Sam" and "Sam" not in seen:
+            seen.add("Sam")
             raise anthropic.RateLimitError(
                 "slow down", response=httpx2.Response(429, request=httpx2.Request("POST", "https://x")), body=None)
         return Decision(action="wait")
@@ -220,7 +220,7 @@ async def test_rate_limit_is_retried_later_not_invalid(auth_client, monkeypatch)
     await add_key()
     _, runs = await wait_exp(await create(auth_client))
     assert runs[0].status == "finished" and runs[0].result["rate_limited_calls"] == 1
-    ada = await decisions(runs[0].id, "Ada")
+    ada = await decisions(runs[0].id, "Sam")
     assert ada[0].outcome == "skipped_chose"  # the 429 left no invalid decision behind
     assert "The game has started." in ada[0].trigger  # its news was kept for the next call
 
@@ -305,3 +305,25 @@ async def test_startup_marks_interrupted_runs_failed(db_setup, monkeypatch):
     assert [(r.status, r.end_reason) for r in runs] == [
         ("finished", None), ("failed", "server_restart"), ("failed", "server_restart"), ("queued", None)]
     assert launched == [exp_id]
+
+
+async def test_custom_leader_prompt_reaches_only_the_leader(auth_client, monkeypatch):
+    systems: list[str] = []
+
+    def behave(agent, kw):
+        systems.append(kw["system"])
+        return Decision(action="wait")
+    use_client(monkeypatch, behave)
+    await add_key()
+    custom = "Tell the others which chair to take next."
+    exp, runs = await wait_exp(await create(auth_client, add_leader=True, leader_prompts={"directive": custom}))
+    directive = next(r for r in runs if r.group == "directive")
+    assert directive.result["seed"] == directive.seed
+    async with SessionLocal() as db:
+        events = (await db.scalars(select(RunEvent).where(RunEvent.run_id == directive.id))).all()
+    started = next(e.data for e in events if e.type == "run_started")
+    leader = next(a["name"] for a in started["agents"] if a["is_leader"])
+    assert started["seed"] == directive.seed and started["target_zone"] in range(4)
+    with_custom = {p for p in systems if custom in p}
+    assert len(with_custom) == 1 and with_custom.pop().endswith(custom)  # one leader, one run (directive)
+    assert sum(LEADER_LINES["free"] in p for p in set(systems)) == 1 and leader

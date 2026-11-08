@@ -18,8 +18,8 @@ const GROUPS: { id: string; title: string; intro: string; fields: NumberField[] 
     title: 'Game timing',
     intro: 'How fast the room moves and how long a game may last.',
     fields: [
-      { key: 'cell_seconds', label: 'Walking speed', unit: 's per cell', step: 0.1 },
-      { key: 'flip_seconds', label: 'Flip time', unit: 's', step: 0.1 },
+      { key: 'cell_seconds', label: 'Walking speed', unit: 's per cell', step: 0.05 },
+      { key: 'flip_seconds', label: 'Flip time', unit: 's', step: 0.05 },
       { key: 'time_limit_s', label: 'Time limit per run', unit: 's', step: 1 },
       { key: 'heartbeat_s', label: 'Ask an idle agent again after', unit: 's', step: 1, hint: 'Seconds with no change in the room.' },
       { key: 'min_call_gap_s', label: 'Gap between two questions to one agent', unit: 's', step: 0.5 },

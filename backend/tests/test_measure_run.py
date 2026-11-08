@@ -1,16 +1,16 @@
 from app.measure.label import Instruction, MessageLabel
 from app.measure.run import make_replay_fn, measure_run
 
-AGENTS = [("Ada", 9, False), ("Bo", 5, True), ("Cy", 3, False), ("Dee", 3, False)]
+AGENTS = [("Sam", 9, False), ("Sky", 5, True), ("Sol", 3, False), ("Sage", 3, False)]
 MSGS = [  # (id, t, sender, text)
-    (1, 1000, "Bo", "Cy, flip chair 2"),
-    (2, 3000, "Bo", "Dee, move chair 5 to [4,4]"),
-    (3, 3500, "Ada", "What if we build the ring in the top-left?"),
-    (4, 5000, "Cy", "someone flip chair 1"),
+    (1, 1000, "Sky", "Sol, flip chair 2"),
+    (2, 3000, "Sky", "Sage, move chair 5 to [4,4]"),
+    (3, 3500, "Sam", "What if we build the ring in the top-left?"),
+    (4, 5000, "Sol", "someone flip chair 1"),
 ]
 LABELS = {
-    1: MessageLabel(style="directive", instruction=Instruction(to="Cy", kind="flip", chair=2)),
-    2: MessageLabel(style="directive", instruction=Instruction(to="Dee", kind="move", chair=5, x=4, y=4)),
+    1: MessageLabel(style="directive", instruction=Instruction(to="Sol", kind="flip", chair=2)),
+    2: MessageLabel(style="directive", instruction=Instruction(to="Sage", kind="move", chair=5, x=4, y=4)),
     3: MessageLabel(style="non_directive"),
     4: MessageLabel(style="other"),
 }
@@ -39,10 +39,10 @@ def decision(agent, seq, t, kind, chair=None, cell=None, outcome="ok"):
 
 
 DECISIONS = [
-    decision("Cy", 1, 2000, "flip", 2),
-    decision("Dee", 1, 4000, "move", 5, [4, 4]),
-    decision("Ada", 1, 4500, "wait", outcome="skipped_invalid"),
-    decision("Ada", 2, 6000, "flip", 1),
+    decision("Sol", 1, 2000, "flip", 2),
+    decision("Sage", 1, 4000, "move", 5, [4, 4]),
+    decision("Sam", 1, 4500, "wait", outcome="skipped_invalid"),
+    decision("Sam", 2, 6000, "flip", 1),
 ]
 
 
@@ -56,11 +56,11 @@ def make_fake_replay(cost=0.01):
 
     async def replay_fn(request):
         chat = request["messages"][0]["content"][1]["text"]
-        if request["system"] == "You are Cy.":  # flips chair 2 only when m1 is visible
+        if request["system"] == "You are Sol.":  # flips chair 2 only when m1 is visible
             return ({"kind": "flip", "chair": 2, "cell": None} if "[m1] " in chat else {"kind": "wait", "chair": None, "cell": None}), cost
         if "[m2] " in chat:
             return {"kind": "move", "chair": 5, "cell": [4, 4]}, cost
-        without_dee_hits[0] += 1  # Dee without m2: does it once out of 3 anyway
+        without_dee_hits[0] += 1  # Sage without m2: does it once out of 3 anyway
         return ({"kind": "move", "chair": 5, "cell": [4, 4]} if without_dee_hits[0] == 1 else None), cost
     return replay_fn
 
@@ -70,20 +70,20 @@ async def test_measure_run_end_to_end_fixture():
                           min_influence=0.5, budget_left_usd=None)
     assert (r["solved"], r["duration_ms"], r["end_reason"]) == (True, 300000, "solved")
     assert r["goals_met"]["circle"] is True
-    assert r["leader_agent"] == "Bo" and r["richest_agent"] == "Ada" and r["leader_is_richest"] is False
-    assert r["measured_leader"] == "Bo"
-    assert r["influence"] == {"Ada": 0.0, "Bo": 1.6667, "Cy": 0.0, "Dee": 0.0}
-    assert r["influence_received"] == {"Ada": 0.0, "Bo": 0.0, "Cy": 1.0, "Dee": 0.6667}
-    assert r["influence_share"] == {"Ada": 0.0, "Bo": 1.0, "Cy": 0.0, "Dee": 0.0}
+    assert r["leader_agent"] == "Sky" and r["richest_agent"] == "Sam" and r["leader_is_richest"] is False
+    assert r["measured_leader"] == "Sky"
+    assert r["influence"] == {"Sam": 0.0, "Sky": 1.6667, "Sol": 0.0, "Sage": 0.0}
+    assert r["influence_received"] == {"Sam": 0.0, "Sky": 0.0, "Sol": 1.0, "Sage": 0.6667}
+    assert r["influence_share"] == {"Sam": 0.0, "Sky": 1.0, "Sol": 0.0, "Sage": 0.0}
     assert r["instructions"] == [
-        {"message_id": 1, "from": "Bo", "to": "Cy", "action": {"kind": "flip", "chair": 2, "cell": None},
+        {"message_id": 1, "from": "Sky", "to": "Sol", "action": {"kind": "flip", "chair": 2, "cell": None},
          "followed": True, "p_with": 1.0, "p_without": 0.0, "score": 1.0},
-        {"message_id": 2, "from": "Bo", "to": "Dee", "action": {"kind": "move", "chair": 5, "cell": [4, 4]},
+        {"message_id": 2, "from": "Sky", "to": "Sage", "action": {"kind": "move", "chair": 5, "cell": [4, 4]},
          "followed": True, "p_with": 1.0, "p_without": 0.3333, "score": 0.6667},
     ]
     assert r["styles"] == {"1": "directive", "2": "directive", "3": "non_directive", "4": "other"}
-    assert r["style_mix"]["Bo"] == {"directive": 2, "non_directive": 0, "other": 0}
-    assert r["style_mix"]["Dee"] == {"directive": 0, "non_directive": 0, "other": 0}
+    assert r["style_mix"]["Sky"] == {"directive": 2, "non_directive": 0, "other": 0}
+    assert r["style_mix"]["Sage"] == {"directive": 0, "non_directive": 0, "other": 0}
     assert r["invalid_share"] == 0.25
     assert r["partial"] is False
     assert r["measure_cost_usd"] == round(4 * 0.001 + 12 * 0.01, 6)
@@ -104,7 +104,7 @@ async def test_unnamed_instruction_ignored():
     assert r["instructions"] == [] and calls == [] and r["measured_leader"] is None
 
     async def self_or_unknown(sender, text, agents):  # recipient = sender, or not an agent of this run
-        return MessageLabel(style="directive", instruction=Instruction(to=sender if "Cy" in text else "someone", kind="flip", chair=2)), 0.0
+        return MessageLabel(style="directive", instruction=Instruction(to=sender if "Sol" in text else "someone", kind="flip", chair=2)), 0.0
 
     r = await measure_run(events=events(), decisions=DECISIONS, label_fn=self_or_unknown, replay_fn=replay_fn,
                           min_influence=0.5, budget_left_usd=None)
@@ -146,7 +146,7 @@ async def test_label_message_call_shape():
         return SimpleNamespace(usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=0), parsed_output=LABELS[1])
 
     client = SimpleNamespace(messages=SimpleNamespace(parse=parse))
-    label, cost = await label_message(client, "claude-haiku-5-5", "Bo", "Cy, flip chair 2", ["Ada", "Bo", "Cy", "Dee"], "low")
+    label, cost = await label_message(client, "claude-haiku-5-5", "Sky", "Sol, flip chair 2", ["Sam", "Sky", "Sol", "Sage"], "low")
     assert label == LABELS[1] and cost == 0.10
     assert seen["output_format"] is MessageLabel and seen["output_config"] == {"effort": "low"} and "temperature" not in seen
-    assert "Sender: Bo" in seen["messages"][0]["content"]
+    assert "Sender: Sky" in seen["messages"][0]["content"]

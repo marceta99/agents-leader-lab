@@ -17,7 +17,7 @@ from app.settings_store import get_settings
 
 log = logging.getLogger(__name__)
 
-GROUP_ORDER = {"none": 0, "free": 1, "directive": 2, "nondirective": 3, "solo": 4}
+GROUP_ORDER = {"none": 0, "free": 1, "directive": 2, "nondirective": 3}
 DONE = ("finished", "stopped", "failed")
 
 _workers: dict[int, asyncio.Task] = {}

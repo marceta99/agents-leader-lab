@@ -29,7 +29,7 @@ Every screen follows this file. Tokens and base components live in `frontend/src
 | `--line` | `rgba(28,24,56,.14)` | borders, rules |
 | `--focus` | `#4F3BF0` | links, focus rings, selected states |
 | `--z1..--z4` | `#E3B341 #7CC3E6 #9CCB7A #EE9AA2` | the four room zones. Also the only decorative accents, and only where the room or zones are meant. |
-| agent colours | Ada `#E4572E`, Bo `#2E86AB`, Cy `#8E5CD9`, Dee `#17A398` | the same everywhere (3D, chat, panels) |
+| agent colours | Sam `#E4572E`, Sky `#2E86AB`, Sol `#8E5CD9`, Sage `#17A398` (older runs: Ada, Bo, Cy, Dee) | the same everywhere (3D, chat, panels) |
 | style tags | directive `#C2410C`, non-directive `#1D6FD1`, other `#8A8FA3` | chat style labels |
 | `--danger` / `--ok` | `#C2362B` / `#2E8B57` | errors / success |
 

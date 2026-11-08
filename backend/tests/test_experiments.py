@@ -1,7 +1,7 @@
 import asyncio
 from collections import Counter
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app import runner, scheduler
 from app.db import SessionLocal
@@ -9,7 +9,7 @@ from app.models import Run
 from app.settings_store import DEFAULTS
 from tests.test_runner import add_key, create, fast, state, use_client, wait_all, wait_exp  # noqa: F401
 
-BODY = {"name": "exp", "budget": [5, 5, 5, 5], "runs": 1, "model": "claude-haiku-5-5", "cap_usd": 5.0}
+BODY = {"budget": [5, 5, 5, 5], "runs": 1, "model": "claude-haiku-5-5", "cap_usd": 5.0}
 
 
 async def test_budget_validation(auth_client, monkeypatch):
@@ -20,13 +20,13 @@ async def test_budget_validation(auth_client, monkeypatch):
     for budget in ([13, 5, 5, 5], [5, 5, 5, 0], [5, 5, 5], [5, 5, 5, 5.5], [-1, 12, 5, 5]):
         r = await auth_client.post("/api/experiments", json={**BODY, "budget": budget})
         assert r.status_code == 422, (budget, r.text)
-    for bad in ({"runs": 0}, {"runs": 26}, {"model": "gpt-4"}, {"cap_usd": 0}, {"name": "  "}):
+    for bad in ({"runs": 0}, {"runs": 26}, {"model": "gpt-4"}, {"cap_usd": 0}):
         assert (await auth_client.post("/api/experiments", json={**BODY, **bad})).status_code == 422, bad
     r = await auth_client.post("/api/experiments", json={**BODY, "budget": [12, 4, 0, 0]})
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["status"] == "queued" and d["runs_total"] == 1 and d["config"]["settings"]["cell_seconds"] == 0.02
-    assert d["config"]["layout_version"] == 1 and d["config"]["budget"] == [12, 4, 0, 0]
+    assert d["config"]["layout_version"] == 2 and d["config"]["budget"] == [12, 4, 0, 0]
 
 
 async def test_estimate(auth_client):
@@ -48,13 +48,22 @@ async def test_leader_creates_4_groups_x_n_runs(auth_client, monkeypatch):
     assert sorted({r["layout_no"] for r in d["runs"]}) == [1, 2, 3]
 
 
-async def test_solo_adds_n_runs(auth_client, monkeypatch):
+async def test_name_seeds_and_leader_prompts(auth_client, monkeypatch):
     monkeypatch.setattr(scheduler, "launch", lambda exp_id: None)
     await add_key()
-    d = (await auth_client.post("/api/experiments", json={**BODY, "runs": 2, "solo_baseline": True})).json()
-    assert Counter(r["group"] for r in d["runs"]) == {"none": 2, "solo": 2}
-    d = (await auth_client.post("/api/experiments", json={**BODY, "runs": 2, "solo_baseline": True, "add_leader": True})).json()
-    assert d["runs_total"] == 10
+    d = (await auth_client.post("/api/experiments", json={**BODY, "budget": [6, 6, 6, 6], "runs": 2})).json()
+    assert d["name"] == "Goals hidden · Equal budget 6 · No leader" and d["config"]["leader_prompts"] is None
+    body = {**BODY, "budget": [9, 5, 3, 3], "know_all_goals": True, "add_leader": True,
+            "leader_prompts": {"directive": "  Tell the others exactly what to do.  "}}
+    d = (await auth_client.post("/api/experiments", json=body)).json()
+    assert d["name"] == "Goals known · Budget 9-5-3-3 · Leader groups"
+    lp = d["config"]["leader_prompts"]
+    assert lp["directive"] == "Tell the others exactly what to do." and lp["free"].startswith("You are the leader")
+    async with SessionLocal() as db:
+        seeds = [r.seed for r in (await db.scalars(select(Run).where(Run.experiment_id == d["id"]))).all()]
+    assert len(seeds) == 4 and all(isinstance(s, int) for s in seeds) and len(set(seeds)) == 4
+    bad = {**body, "leader_prompts": {"boss": "x"}}
+    assert (await auth_client.post("/api/experiments", json=bad)).status_code == 422
     listed = (await auth_client.get("/api/experiments")).json()
     assert [e["id"] for e in listed] == [d["id"], d["id"] - 1]  # newest first
 

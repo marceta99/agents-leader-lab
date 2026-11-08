@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AgentState, GoalId, GoalsMet } from './types'
-import { AGENT_COLORS, GOAL_TEXT } from './types'
+import { AGENT_COLORS, goalText } from './types'
 
 const STYLE_TEXT = { free: 'its own way', directive: 'giving instructions', nondirective: 'asking and proposing' } as const
 
@@ -11,8 +11,8 @@ function doing(a: AgentState) {
   return 'Standing'
 }
 
-export default function AgentPanel(props: { agents: AgentState[]; goalsMet: GoalsMet; leader?: string | null }) {
-  const { agents, goalsMet, leader } = props
+export default function AgentPanel(props: { agents: AgentState[]; goalsMet: GoalsMet; leader?: string | null; zone?: number | null }) {
+  const { agents, goalsMet, leader, zone } = props
   const [showNotes, setShowNotes] = useState(false)
   return (
     <section className="rv-panel rv-agents" aria-label="Agents">
@@ -40,7 +40,7 @@ export default function AgentPanel(props: { agents: AgentState[]; goalsMet: Goal
               </div>
               {goals.map((g) => (
                 <div key={g} className={goalsMet[g] ? 'rv-goal met' : 'rv-goal'}>
-                  <span aria-hidden="true">{goalsMet[g] ? '✓' : '○'}</span> {GOAL_TEXT[g] ?? g}
+                  <span aria-hidden="true">{goalsMet[g] ? '✓' : '○'}</span> {goalText(g, zone) ?? g}
                   {goalsMet[g] && <span className="rv-sr"> (met)</span>}
                 </div>
               ))}

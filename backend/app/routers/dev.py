@@ -18,7 +18,8 @@ _tasks: set[asyncio.Task] = set()  # keep references so running dev runs are not
 async def scripted_run(db: AsyncSession = Depends(get_db)):
     if settings.env != "dev":
         raise HTTPException(404, "Not found")
-    run = Run(experiment_id=None, group="none", layout_no=random.randint(1, 50), status="queued", result={})
+    run = Run(experiment_id=None, group="none", layout_no=random.randint(1, 50),
+              seed=random.randrange(2**31), status="queued", result={})
     db.add(run)
     await db.commit()
     task = asyncio.create_task(runner.execute_run(run.id, mode="scripted"))

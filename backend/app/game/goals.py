@@ -16,7 +16,8 @@ def _connected(cells: set) -> bool:
     return len(seen) == len(cells)
 
 
-def goals_met(chairs) -> dict[str, bool]:
+def goals_met(chairs, target_zone: int | None = None) -> dict[str, bool]:
+    """target_zone: the zone the one_zone goal names (None = any single zone)."""
     chairs = list(chairs)
     cells = [tuple(c["cell"]) for c in chairs]
     cellset = set(cells)
@@ -29,6 +30,7 @@ def goals_met(chairs) -> dict[str, bool]:
     return {
         "circle": circle,
         "upside_down": all(c["upside_down"] for c in chairs),
-        "one_zone": len({zone(c) for c in cells}) == 1,
+        "one_zone": ({zone(c) for c in cells} == {target_zone}) if target_zone is not None
+        else len({zone(c) for c in cells}) == 1,
         "touching": touching,
     }

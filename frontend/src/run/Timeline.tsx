@@ -1,5 +1,7 @@
 import { fmtTime } from './reducer'
-import type { Speed } from './usePlayback'
+import { SPEEDS, type Speed } from './usePlayback'
+
+const SPEED_LABEL: Record<number, string> = { 0.125: '⅛×', 0.25: '¼×', 0.5: '½×', 1: '1×', 2: '2×', 4: '4×' }
 
 export default function Timeline(props: {
   t: number
@@ -41,9 +43,15 @@ export default function Timeline(props: {
         {fmtTime(t)} <span className="rv-dim">/ {fmtTime(duration)}</span>
       </span>
       <div className="rv-speeds" role="group" aria-label="Playback speed">
-        {([1, 2, 4] as Speed[]).map((s) => (
-          <button key={s} className={s === speed ? 'on' : undefined} aria-pressed={s === speed} onClick={() => props.onSpeed(s)}>
-            {s}×
+        {SPEEDS.map((s) => (
+          <button
+            key={s}
+            className={s === speed ? 'on' : undefined}
+            aria-pressed={s === speed}
+            aria-label={`${s} times speed`}
+            onClick={() => props.onSpeed(s)}
+          >
+            {SPEED_LABEL[s]}
           </button>
         ))}
       </div>

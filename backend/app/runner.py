@@ -14,7 +14,7 @@ from sqlalchemy import func, update
 
 from app import hub, settings_store
 from app.agents import llm
-from app.agents.prompts import system_prompt
+from app.agents.prompts import LEADER_LINES, system_prompt
 from app.db import SessionLocal
 from app.game.engine import Game, GameConfig
 from app.game.layouts import make_layout
@@ -29,7 +29,7 @@ TICK_MS = 100  # real-time loop period
 REFRESH_S = 1.0  # how often the tick loop re-reads stop conditions (stop flag, spent, key) from the DB
 END_WAIT_S = 30  # after a natural end, wait this long for in-flight calls so their cost is counted
 LEADER_GROUPS = ("free", "directive", "nondirective")
-DEV_BUDGET = [5, 5, 5, 5]
+DEV_BUDGET = [6, 6, 6, 6]
 
 
 RETRY_LATER_MS = 15_000  # after a rate limit / overload that outlived the SDK's own retries
@@ -55,18 +55,19 @@ class _Run:
         # Min gap between one agent's calls: stops chat storms (every message wakes everyone) from burning
         # calls and the key's tokens-per-minute limit. Scripted dev runs don't need it.
         self.min_gap_ms = int(s.get("min_call_gap_s", 3) * 1000) if mode == "llm" else 0
-        layout = make_layout(run.layout_no, cfg.get("budget", DEV_BUDGET), solo=run.group == "solo")
+        self.seed = run.seed if run.seed is not None else run.layout_no
+        layout = make_layout(run.layout_no, cfg.get("budget", DEV_BUDGET), self.seed)
         leader = layout.leader if run.group in LEADER_GROUPS else None
+        leader_line = ((cfg.get("leader_prompts") or {}).get(run.group) or LEADER_LINES.get(run.group)) if leader else None
         gcfg = GameConfig(
             cell_ms=int(s["cell_seconds"] * 1000), flip_ms=int(s["flip_seconds"] * 1000),
             time_limit_ms=int(s["time_limit_s"] * 1000), heartbeat_ms=int(s["heartbeat_s"] * 1000),
             know_all_goals=bool(cfg.get("know_all_goals")), leader=leader, leader_style=run.group if leader else None,
         )
-        self.game = Game(layout, gcfg, group=run.group, seed=run.layout_no)
-        solo = run.group == "solo"
+        self.game = Game(layout, gcfg, group=run.group, seed=self.seed)
         self.systems = {
             name: system_prompt(name, layout.goals[name], layout.budgets[name], gcfg.know_all_goals, layout.goals,
-                                gcfg.leader_style if name == leader else None, solo, gcfg)
+                                leader_line if name == leader else None, gcfg, layout.zone)
             for name, _ in layout.agents
         } if mode == "llm" else {}
         self.client = llm.make_client(key) if key else None
@@ -312,7 +313,8 @@ async def execute_run(run_id: int, *, mode: str = "llm", tick_ms: int | None = N
         game = r.game
         ended = game.events[-1]["data"]
         result = {"solved": ended["solved"], "duration_ms": ended["duration_ms"], "end_reason": ended["reason"],
-                  "goals_met": ended["met"], "rate_limited_calls": r.rate_limited}
+                  "goals_met": ended["met"], "completion": ended["completion"], "seed": r.seed,
+                  "rate_limited_calls": r.rate_limited}
         measure_cost = 0.0
         if mode == "llm" and game.ended != "stopped":
             async with SessionLocal() as db:

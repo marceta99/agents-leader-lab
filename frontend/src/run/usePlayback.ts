@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RunEvent } from './types'
 
-export type Speed = 1 | 2 | 4
+// Below 1 slows the replay down: games now move fast (0.25 s per cell), 1/8 shows moves at the old 2 s pace.
+export type Speed = 0.125 | 0.25 | 0.5 | 1 | 2 | 4
+export const SPEEDS: Speed[] = [0.125, 0.25, 0.5, 1, 2, 4]
 
 /**
  * Playback clock in game ms.

@@ -20,7 +20,7 @@ def scripted_decision(game, agent: str) -> tuple[str, int | None, list | None, s
     """(kind, chair, cell, message | None) for `agent`, to pass to game.decide / game.say."""
     s = _state.get(game)
     if s is None:
-        s = _state[game] = {"ring": solve([ch["cell"] for ch in game.chairs.values()])[1], "claims": {}}
+        s = _state[game] = {"ring": solve([ch["cell"] for ch in game.chairs.values()], game.layout.zone)[1], "claims": {}}
     if game.is_busy(agent):
         return "continue", None, None, None
     ring, claims = s["ring"], s["claims"]

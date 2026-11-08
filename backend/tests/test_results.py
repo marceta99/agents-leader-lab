@@ -11,10 +11,10 @@ from app.results import aggregate
 
 CONFIG = {"name": "x", "model": "claude-haiku-5-5", "add_leader": True, "settings": {"cell_seconds": 2.0}}
 RESULT = {
-    "solved": True, "duration_ms": 120000, "leader_agent": "Bo", "richest_agent": "Bo", "leader_is_richest": True,
-    "measured_leader": "Bo", "influence_share": {"Ada": 0.0, "Bo": 0.8, "Cy": 0.2, "Dee": 0.0},
-    "instructions": [{"message_id": 1, "from": "Bo", "to": "Cy", "followed": True, "score": 0.67}],
-    "styles": {"1": "directive"}, "style_mix": {"Bo": {"directive": 1, "non_directive": 0, "other": 0}},
+    "solved": True, "duration_ms": 120000, "leader_agent": "Sky", "richest_agent": "Sky", "leader_is_richest": True,
+    "measured_leader": "Sky", "influence_share": {"Sam": 0.0, "Sky": 0.8, "Sol": 0.2, "Sage": 0.0},
+    "instructions": [{"message_id": 1, "from": "Sky", "to": "Sol", "followed": True, "score": 0.67}],
+    "styles": {"1": "directive"}, "style_mix": {"Sky": {"directive": 1, "non_directive": 0, "other": 0}},
     "partial": False,
 }
 
@@ -37,9 +37,9 @@ async def make_experiment(email: str, is_demo: bool = False, n_runs: int = 1) ->
         await db.flush()
         for r in runs:
             db.add_all([
-                RunEvent(run_id=r.id, seq=2, t_ms=500, type="message", data={"agent": "Bo", "id": 1, "text": "Cy, flip 2"}),
+                RunEvent(run_id=r.id, seq=2, t_ms=500, type="message", data={"agent": "Sky", "id": 1, "text": "Sol, flip 2"}),
                 RunEvent(run_id=r.id, seq=1, t_ms=0, type="run_started", data={}),
-                Decision(run_id=r.id, agent="Bo", seq=1, t_ms=0, trigger=["start"], request={"system": "s"},
+                Decision(run_id=r.id, agent="Sky", seq=1, t_ms=0, trigger=["start"], request={"system": "s"},
                          response={}, outcome="ok"),
             ])
         await db.commit()
@@ -51,14 +51,14 @@ def _run(status, group, **res):
 
 
 FIXTURE = [
-    _run("finished", "free", solved=True, duration_ms=100000, measured_leader="Bo", leader_agent="Bo",
-         richest_agent="Bo", leader_is_richest=True, influence_share={"Bo": 0.8},
-         style_mix={"Bo": {"directive": 2, "non_directive": 1, "other": 0}}),
-    _run("finished", "free", solved=False, duration_ms=200000, measured_leader=None, leader_agent="Cy",
-         richest_agent="Ada", leader_is_richest=False, influence_share={"Cy": 0.1}),
-    _run("finished", "none", solved=True, duration_ms=300000, measured_leader="Ada", leader_agent=None,
-         richest_agent="Dee", leader_is_richest=None),
-    _run("finished", "free", solved=True, partial=True, leader_agent="Bo", leader_is_richest=False),
+    _run("finished", "free", solved=True, duration_ms=100000, measured_leader="Sky", leader_agent="Sky",
+         richest_agent="Sky", leader_is_richest=True, influence_share={"Sky": 0.8},
+         style_mix={"Sky": {"directive": 2, "non_directive": 1, "other": 0}}),
+    _run("finished", "free", solved=False, duration_ms=200000, measured_leader=None, leader_agent="Sol",
+         richest_agent="Sam", leader_is_richest=False, influence_share={"Sol": 0.1}),
+    _run("finished", "none", solved=True, duration_ms=300000, measured_leader="Sam", leader_agent=None,
+         richest_agent="Sage", leader_is_richest=None),
+    _run("finished", "free", solved=True, partial=True, leader_agent="Sky", leader_is_richest=False),
 ]
 
 
@@ -69,7 +69,7 @@ def test_aggregates_fixture():
     assert o["runs"] == 3
     assert o["solved_rate"] == pytest.approx(2 / 3)
     assert o["leader_rate"] == pytest.approx(2 / 3)
-    assert o["richest_leader_rate"] == pytest.approx(0.5)  # runs 1 (Bo==Bo) and 3 (Ada!=Dee)
+    assert o["richest_leader_rate"] == pytest.approx(0.5)  # runs 1 (Sky==Sky) and 3 (Sam!=Sage)
     assert o["avg_duration_s"] == pytest.approx(200)
     assert o["leader_became_measured_rate"] == pytest.approx(0.5)
     assert o["leader_share_avg"] == pytest.approx(0.45)
@@ -114,7 +114,7 @@ async def test_export_contains_no_key_or_email(auth_client):
     data = r.json()
     run = data["runs"][0]
     assert [e["seq"] for e in run["events"]] == [1, 2]
-    assert run["decisions"][0]["agent"] == "Bo"
+    assert run["decisions"][0]["agent"] == "Sky"
     assert data["experiment"]["config"] == CONFIG
     zbytes = (await auth_client.get(f"/api/experiments/{exp_id}/export.zip")).content
     with zipfile.ZipFile(io.BytesIO(zbytes)) as z:
@@ -132,7 +132,7 @@ async def test_export_zip_has_two_csvs(auth_client):
         assert sorted(z.namelist()) == ["messages.csv", "runs.csv"]
         runs_lines = z.read("runs.csv").decode().splitlines()
         msg_lines = z.read("messages.csv").decode().splitlines()
-    assert runs_lines[0].startswith("run_id,group,layout_no") and "influence_share_Bo" in runs_lines[0]
-    assert len(runs_lines) == 3 and runs_lines[1].startswith(f"{run_ids[0]},free,1,finished,solved,True,120.0,Bo")
+    assert runs_lines[0].startswith("run_id,group,layout_no") and "influence_share_Sky" in runs_lines[0]
+    assert len(runs_lines) == 3 and runs_lines[1].startswith(f"{run_ids[0]},free,1,,finished,solved,True,,120.0,Sky")
     assert len(msg_lines) == 3
-    assert msg_lines[1] == f"{run_ids[0]},1,0.5,Bo,\"Cy, flip 2\",directive,True,Cy,True,0.67"
+    assert msg_lines[1] == f"{run_ids[0]},1,0.5,Sky,\"Sol, flip 2\",directive,True,Sol,True,0.67"
