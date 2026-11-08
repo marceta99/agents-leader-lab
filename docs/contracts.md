@@ -94,6 +94,7 @@ What is fixed by `n` (`LAYOUT_VERSION = 2`): chair cells, one start cell per goa
   - `solved`: all 4 goals are met and no chair is held.
   - `budget_exhausted`: every budget is 0 and no chair is held.
   - `all_waiting`: every agent is idle, each agent's last recorded decision came after the last state change (any event other than `decision` and `notes`) and was `wait`/`continue`, and at least `heartbeat_ms` have passed since the last state change.
+  - `gridlock`: every agent has sent `GRIDLOCK_MESSAGES` (5) chat messages while idle since it last took a chair (`chair_taken`).
   - `time_limit`.
   - `call_limit`: set by the runner.
   - `stopped`: set by the runner.

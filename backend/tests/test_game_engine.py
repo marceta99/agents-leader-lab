@@ -246,3 +246,18 @@ def test_events_seq_contiguous_and_json_serialisable():
     assert ev[-1]["data"]["solved"] is True and all(ev[-1]["data"]["met"].values())
     assert json.loads(json.dumps(ev)) == ev  # no tuples, all JSON types
     assert g.drain_events() == ev and g.drain_events() == []
+
+
+def test_gridlock_when_everyone_only_talks():
+    g = make_game([(3, 0)] + FAR, {"Sam": (0, 0), "Sky": (7, 7)})
+    for _ in range(4):
+        g.say("Sam", "talk")
+        g.say("Sky", "talk")
+    g.decide("Sam", "flip", 1)  # Sam walks off to act: its messages from now on do not count
+    g.say("Sam", "on my way")
+    run_to(g, 9000)  # Sam takes chair 1: Sam's count resets
+    g.say("Sky", "talk")
+    assert not g.ended
+    for _ in range(5):
+        g.say("Sam", "talk")
+    assert g.ended == "gridlock" and g.events[-1]["data"]["reason"] == "gridlock"

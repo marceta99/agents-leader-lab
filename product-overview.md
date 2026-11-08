@@ -138,6 +138,7 @@ A game ends as soon as any of these is true:
 - all four goals are met (**solved**);
 - all actions are spent and nobody is carrying a chair;
 - every agent is waiting and nothing new is happening;
+- **gridlock**: every agent has sent 5 chat messages since it last moved or flipped a chair (messages sent while walking, carrying or flipping do not count);
 - **10 minutes** have passed;
 - an agent has been asked **20 times** (protects against agents that only chat and burn API credit, which happens most once their actions run out).
 

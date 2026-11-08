@@ -157,7 +157,7 @@ async def test_scripted_run_persists_events_and_solves(client):
 
 
 async def test_one_call_in_flight_per_agent(auth_client, monkeypatch):
-    monkeypatch.setitem(DEFAULTS, "call_limit", 8)
+    monkeypatch.setitem(DEFAULTS, "call_limit", 4)  # below the gridlock count, so the call limit ends it
     stats = {"now": {}, "max": {}}
     seen = []
 

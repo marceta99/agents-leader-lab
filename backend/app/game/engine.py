@@ -14,6 +14,7 @@ from app.game.solver import completion
 
 KINDS = ("move", "flip", "put_down", "continue", "wait")
 QUIET_EVENTS = {"decision", "notes", "cost"}  # do not count as a state change for all_waiting
+GRIDLOCK_MESSAGES = 5  # every agent sent this many chat messages since it last took a chair -> run ends
 
 
 @dataclass
@@ -52,7 +53,7 @@ class Game:
             name: {
                 "cell": tuple(cell), "budget": layout.budgets[name], "goal": layout.goals[name],
                 "state": "idle", "holding": None, "plan": None, "step_to": None, "due": None,
-                "triggers": [], "notes": "", "last_kind": None, "last_t": 0,
+                "triggers": [], "notes": "", "last_kind": None, "last_t": 0, "talk_only": 0,
             }
             for name, cell in layout.agents
         }
@@ -187,6 +188,11 @@ class Game:
         self.chat.append({"id": mid, "agent": agent, "text": text, "t": self.t})
         self.emit("message", {"agent": agent, "id": mid, "text": text})
         self._tell_others(agent, f"New chat message from {agent}.")
+        a = self.agents[agent]
+        if a["state"] == "idle":  # talking while walking, carrying or flipping is not talk-only
+            a["talk_only"] += 1
+        if all(o["talk_only"] >= GRIDLOCK_MESSAGES for o in self.agents.values()):
+            self.end("gridlock")
         return mid
 
     def set_notes(self, agent: str, text: str):
@@ -324,6 +330,7 @@ class Game:
     def _take(self, name: str, cid: int, kind: str):
         a, ch = self.agents[name], self.chairs[cid]
         a["budget"] -= 1
+        a["talk_only"] = 0
         a["holding"], ch["held_by"] = cid, name
         self.emit("chair_taken", {"agent": name, "chair": cid, "for": kind, "budget_left": a["budget"]})
         verb = "picked up" if kind == "move" else "started flipping"
