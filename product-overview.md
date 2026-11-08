@@ -139,7 +139,7 @@ A game ends as soon as any of these is true:
 - all actions are spent and nobody is carrying a chair;
 - every agent is waiting and nothing new is happening;
 - **10 minutes** have passed;
-- an agent has been asked **60 times** (protects against agents that only chat and burn API credit).
+- an agent has been asked **45 times** (protects against agents that only chat and burn API credit).
 
 ---
 
@@ -227,7 +227,7 @@ Because every experiment plays on the same numbered layouts, **any two experimen
 
 **Solo baseline:** one agent gets all four goals and the whole team's actions and plays alone. It shows whether the model can solve the puzzle at all, so a team that fails can be read as failing to coordinate rather than failing at the puzzle.
 
-Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 60-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
+Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 45-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
 
 ### 5.3 Running
 

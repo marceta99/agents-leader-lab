@@ -51,7 +51,7 @@ class _Run:
         cfg = exp.config if exp else {}
         s = (cfg.get("settings") or {}) if exp else settings_store.DEFAULTS
         self.model, self.effort = cfg.get("model"), s.get("effort", "low")
-        self.call_limit, self.min_influence = s.get("call_limit", 60), s.get("min_influence", 0.5)
+        self.call_limit, self.min_influence = s.get("call_limit", 45), s.get("min_influence", 0.5)
         # Min gap between one agent's calls: stops chat storms (every message wakes everyone) from burning
         # calls and the key's tokens-per-minute limit. Scripted dev runs don't need it.
         self.min_gap_ms = int(s.get("min_call_gap_s", 3) * 1000) if mode == "llm" else 0

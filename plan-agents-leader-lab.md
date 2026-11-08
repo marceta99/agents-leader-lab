@@ -226,7 +226,7 @@ Add `backend/app/agents/`:
 - `feat(agents): add prompts, observation builder and decision schema`: a Pydantic `Decision` with action enum, chair, cell, message (≤300 chars), notes. The prompt avoids the words leader, team, coordinate and manager, except in the leader line.
 - `feat(agents): add per-agent decision loop with triggers and heartbeat`: an `asyncio.Event` per agent, set by engine events (action done, arrival, cell occupied, chair taken, new message, take/release by others). Events that happen during a call are queued into the next observation.
 - `feat(agents): call Claude with structured output and retry on invalid`: `AsyncAnthropic(api_key=…, max_retries=5)`; `client.messages.parse(model=…, output_format=Decision, output_config={"effort": "low"}, …)`. On a parse or validation failure the agent is asked once more, then gets `skipped_invalid`.
-- `feat(agents): add token cost accounting and call limit`: a price table per model. The cost is added to the run and the experiment. Once an agent reaches 60 calls, the `call_limit` end condition fires.
+- `feat(agents): add token cost accounting and call limit`: a price table per model. The cost is added to the run and the experiment. Once an agent reaches 45 calls (default; set by admins), the `call_limit` end condition fires.
 - `test(agents): add prompt neutrality and loop tests with a fake client`
 
 ### Notes

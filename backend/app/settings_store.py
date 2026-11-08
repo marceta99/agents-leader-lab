@@ -7,7 +7,7 @@ DEFAULTS: dict = {
     "cell_seconds": 2.0,
     "flip_seconds": 2.0,
     "time_limit_s": 600,
-    "call_limit": 60,
+    "call_limit": 45,
     "heartbeat_s": 10,
     "min_call_gap_s": 3,
     "budget_max_per_agent": 12,
