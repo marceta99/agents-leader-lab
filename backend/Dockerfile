@@ -6,4 +6,4 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 ENV PATH="/app/.venv/bin:$PATH" ENV=prod PYTHONUNBUFFERED=1
 # "::" listens on IPv4 and IPv6, which Railway's private network needs.
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host :: --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host :: --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
