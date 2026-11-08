@@ -1,12 +1,30 @@
 import { useEffect, useRef } from 'react'
 import { fmtTime } from './reducer'
-import type { ChatMessage, RunResult } from './types'
+import type { ChatMessage, Instruction, RunResult } from './types'
 import { AGENT_COLORS, STYLE_COLORS } from './types'
 
 const STYLE_LABEL = { directive: 'Directive', non_directive: 'Non-directive', other: 'Other' } as const
 
 const actionText = (a: { kind: string; chair: number | null; cell: [number, number] | null }) =>
   `${a.kind} chair ${a.chair ?? '?'}${a.cell ? ` to (${a.cell[0]},${a.cell[1]})` : ''}`
+
+const UNTESTED: Record<string, string> = {
+  message_not_seen: 'never decided after seeing it',
+  no_idle_decision: 'no free moment to test',
+  over_budget: 'spending cap reached',
+  replay_failed: 'replays failed',
+}
+
+function instrText(i: Instruction) {
+  const what =
+    i.type === 'plan'
+      ? `adopted the plan (${actionText(i.action)})`
+      : i.type === 'prohibition'
+        ? `leave chair ${i.action.chair} alone: ${i.followed ? 'left it' : 'touched it'}`
+        : `${actionText(i.action)}: ${i.followed ? 'followed' : i.followed === false ? 'not followed' : 'not seen'}`
+  if (i.score == null) return `${i.to}, ${what}, not testable (${UNTESTED[i.untested_reason ?? ''] ?? 'unknown'})`
+  return i.followed === false && i.type !== 'prohibition' ? `${i.to}, ${what}` : `${i.to}, ${what}, influence `
+}
 
 export default function ChatPanel(props: { messages: ChatMessage[]; result: RunResult | null; follow: boolean }) {
   const { messages, result, follow } = props
@@ -39,14 +57,12 @@ export default function ChatPanel(props: { messages: ChatMessage[]; result: RunR
               </div>
               <p className="rv-msg-text">{m.text}</p>
               {instr.map((i, k) => (
-                <div key={k} className={i.followed ? 'rv-instr ok' : 'rv-instr no'}>
-                  <span aria-hidden="true">{i.followed ? '✓' : '✕'}</span>
+                <div key={k} className={i.score ? 'rv-instr ok' : 'rv-instr no'}>
+                  <span aria-hidden="true">{i.score == null ? '–' : i.followed ? '✓' : '✕'}</span>
                   <span>
-                    {i.to}, {actionText(i.action)}: {i.followed ? 'followed' : 'not followed'}
-                    {i.followed && (
-                      <>
-                        , influence <b className="tnum">{i.score.toFixed(2)}</b>
-                      </>
+                    {instrText(i)}
+                    {i.score != null && (i.followed !== false || i.type === 'prohibition') && (
+                      <b className="tnum">{i.score.toFixed(2)}</b>
                     )}
                   </span>
                 </div>

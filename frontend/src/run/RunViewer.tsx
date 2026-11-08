@@ -70,7 +70,21 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
           {run.result && (
             <div>
               <dt>Measured leader</dt>
-              <dd>{leader ?? 'None'}</dd>
+              <dd>
+                {leader ?? 'None'}
+                {run.result.measure_version === 2 && (
+                  <span className="rv-dim">
+                    {' '}
+                    (2+ followers: {run.result.measured_leader_strict ?? 'none'})
+                  </span>
+                )}
+              </dd>
+            </div>
+          )}
+          {run.result?.target_agent && (
+            <div>
+              <dt>{run.result.target_agent}'s influence share</dt>
+              <dd className="tnum">{run.result.target_share == null ? 'nobody influenced' : `${Math.round(run.result.target_share * 100)}%`}</dd>
             </div>
           )}
         </dl>

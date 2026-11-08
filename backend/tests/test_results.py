@@ -72,7 +72,9 @@ def test_aggregates_fixture():
     assert o["richest_leader_rate"] == pytest.approx(0.5)  # runs 1 (Sky==Sky) and 3 (Sam!=Sage)
     assert o["avg_duration_s"] == pytest.approx(200)
     assert o["leader_became_measured_rate"] == pytest.approx(0.5)
-    assert o["leader_share_avg"] == pytest.approx(0.45)
+    assert o["target_share_avg"] == pytest.approx(0.45)  # legacy results: share of the told leader
+    assert o["target_share_runs"] == 2
+    assert o["leader_rate_strict"] == 0.0
     assert o["style_mix"] == {"directive": 2, "non_directive": 1, "other": 0}
     assert list(out["groups"]) == ["none", "free"]
     assert out["groups"]["none"]["leader_became_measured_rate"] is None
@@ -123,16 +125,19 @@ async def test_export_contains_no_key_or_email(auth_client):
             assert "user@example.com" not in text and "SECRETCIPHER" not in text
 
 
-async def test_export_zip_has_two_csvs(auth_client):
+async def test_export_zip_has_three_csvs(auth_client):
     exp_id, run_ids = await make_experiment("user@example.com", n_runs=2)
     r = await auth_client.get(f"/api/experiments/{exp_id}/export.zip")
     assert r.status_code == 200
     assert f'filename="experiment-{exp_id}.zip"' in r.headers["content-disposition"]
     with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-        assert sorted(z.namelist()) == ["messages.csv", "runs.csv"]
+        assert sorted(z.namelist()) == ["instructions.csv", "messages.csv", "runs.csv"]
+        ins_lines = z.read("instructions.csv").decode().splitlines()
         runs_lines = z.read("runs.csv").decode().splitlines()
         msg_lines = z.read("messages.csv").decode().splitlines()
     assert runs_lines[0].startswith("run_id,group,layout_no") and "influence_share_Sky" in runs_lines[0]
     assert len(runs_lines) == 3 and runs_lines[1].startswith(f"{run_ids[0]},free,1,,finished,solved,True,,120.0,Sky")
     assert len(msg_lines) == 3
+    assert ins_lines[0].startswith("run_id,message_id,from,to,type") and len(ins_lines) == 3
+    assert ins_lines[1] == f"{run_ids[0]},1,Sky,Sol,instruction,,,,True,,,0.67,"
     assert msg_lines[1] == f"{run_ids[0]},1,0.5,Sky,\"Sol, flip 2\",directive,True,Sol,True,0.67"

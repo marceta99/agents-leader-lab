@@ -6,7 +6,7 @@ CALLS_PER_AGENT = 20  # decision calls per agent per run (= default call limit; 
 INPUT_TOKENS_PER_CALL = 8000  # system prompt + state block + growing chat; first real run averaged 8.2K
 OUTPUT_TOKENS_PER_CALL = 300  # at effort "low", thinking included; first real run averaged 300
 EFFORT_OUTPUT_FACTOR = {"low": 1.0, "medium": 2.0, "high": 4.0}
-MEASURE_FACTOR = 0.3  # measurement (labels + replays); first real run: 22% of game cost
+MEASURE_FACTOR = 1.5  # measurement v2 (5+5 replays, prohibitions, plans); v1 was ~22% of game cost, retune after real runs
 
 
 def estimate(config: dict, settings: dict) -> dict:

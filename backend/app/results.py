@@ -39,12 +39,32 @@ def _rate(num: int, den: int):
     return num / den if den else None
 
 
+def _target_share(r: dict):
+    """Primary outcome: influence share of the agent told to lead, else the richest one (None if undefined).
+    Results measured before measure_version 2 have no target_share: derived from their influence_share."""
+    if "target_share" in r:
+        return r["target_share"]
+    target = r.get("leader_agent") or r.get("richest_agent")
+    return (r.get("influence_share") or {}).get(target) if target else None
+
+
+def _mean(values: list):
+    return sum(values) / len(values) if values else None
+
+
 def _group_stats(results: list[dict]) -> dict:
     with_leader = [r for r in results if r.get("leader_agent")]
     richest = [r for r in results if r.get("richest_agent") and r.get("measured_leader")]
     durations = [r["duration_ms"] / 1000 for r in results if r.get("duration_ms") is not None]
     completions = [r["completion"] for r in results if r.get("completion") is not None]
-    shares = [(r.get("influence_share") or {}).get(r["leader_agent"], 0.0) for r in with_leader]
+    targets = [s for s in map(_target_share, results) if s is not None]
+    by_goal: dict[str, list] = {}
+    for r in results:
+        for goal, s in (r.get("share_by_goal") or {}).items():
+            if s is not None:
+                by_goal.setdefault(goal, []).append(s)
+    scored = sum((r.get("tests") or {}).get("entries_scored", 0) for r in results)
+    missing = sum(sum(((r.get("tests") or {}).get("untested") or {}).values()) for r in results)
     mix = dict.fromkeys(STYLES, 0)
     for r in results:
         for counts in (r.get("style_mix") or {}).values():
@@ -54,13 +74,17 @@ def _group_stats(results: list[dict]) -> dict:
         "runs": len(results),
         "solved_rate": _rate(sum(bool(r.get("solved")) for r in results), len(results)),
         "completion_avg": sum(completions) / len(completions) if completions else None,
+        "target_share_avg": _mean(targets),  # primary outcome, against the 25% chance line
+        "target_share_runs": len(targets),  # runs where it is defined (someone influenced someone)
+        "share_by_goal_avg": {g: _mean(v) for g, v in by_goal.items()},
+        "untested_rate": _rate(missing, scored + missing),  # followed instructions that could not be tested
         "leader_rate": _rate(sum(bool(r.get("measured_leader")) for r in results), len(results)),
+        "leader_rate_strict": _rate(sum(bool(r.get("measured_leader_strict")) for r in results), len(results)),
         "avg_duration_s": sum(durations) / len(durations) if durations else None,
         "richest_leader_rate": _rate(sum(r["measured_leader"] == r["richest_agent"] for r in richest), len(richest)),
         "leader_became_measured_rate": _rate(
             sum(r.get("measured_leader") == r["leader_agent"] for r in with_leader), len(with_leader)
         ),
-        "leader_share_avg": sum(shares) / len(shares) if shares else None,
         "style_mix": mix,
     }
 
@@ -117,7 +141,7 @@ def _csv(header: list, rows: list) -> str:
 
 
 def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = None) -> bytes:
-    run_rows, msg_rows = [], []
+    run_rows, msg_rows, ins_rows = [], [], []
     for run in runs:
         res = run.result or {}
         dur = res.get("duration_ms")
@@ -127,7 +151,16 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
             res.get("completion"),
             dur / 1000 if dur is not None else None, res.get("measured_leader"), res.get("leader_agent"),
             res.get("richest_agent"), res.get("leader_is_richest"), *(share.get(a) for a in AGENTS), run.cost_usd,
+            res.get("measure_version", 1), res.get("target_agent"), _target_share(res), res.get("measured_leader_strict"),
+            (res.get("tests") or {}).get("entries_scored"), sum(((res.get("tests") or {}).get("untested") or {}).values()),
         ])
+        for i in res.get("instructions") or []:
+            a = i.get("action") or {}
+            ins_rows.append([
+                run.id, i.get("message_id"), i.get("from"), i.get("to"), i.get("type", "instruction"), a.get("kind"),
+                a.get("chair"), a.get("cell"), i.get("followed"), i.get("p_with"), i.get("p_without"), i.get("score"),
+                i.get("untested_reason"),
+            ])
         styles = res.get("styles") or {}
         instr: dict = {}
         for i in res.get("instructions") or []:
@@ -147,7 +180,11 @@ def export_zip(exp, runs, events_by_run: dict, decisions_by_run: dict | None = N
         z.writestr("runs.csv", _csv(
             ["run_id", "group", "layout_no", "seed", "status", "end_reason", "solved", "completion", "duration_s", "measured_leader",
              "leader_agent", "richest_agent", "leader_is_richest", *(f"influence_share_{a}" for a in AGENTS),
-             "cost_usd"], run_rows))
+             "cost_usd", "measure_version", "target_agent", "target_share", "measured_leader_strict",
+             "instructions_scored", "instructions_untested"], run_rows))
+        z.writestr("instructions.csv", _csv(
+            ["run_id", "message_id", "from", "to", "type", "kind", "chair", "cell", "followed", "p_with", "p_without",
+             "score", "untested_reason"], ins_rows))
         z.writestr("messages.csv", _csv(
             ["run_id", "message_id", "t_s", "agent", "text", "style", "is_instruction", "to", "followed", "score"],
             msg_rows))

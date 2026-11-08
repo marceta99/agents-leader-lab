@@ -1760,3 +1760,40 @@ table.runs tr.layout-start td {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Primary outcome: influence share against the 25% chance line */
+.primary-outcome {
+  padding: 28px 32px 32px;
+  border-bottom: 1px solid var(--line);
+}
+.primary-outcome h3 {
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+.primary-outcome .small-text {
+  margin: 16px 0 0;
+  max-width: 70ch;
+}
+.goal-shares {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+.goal-shares dt {
+  color: var(--ink-2);
+  font-size: 14px;
+  text-transform: capitalize;
+}
+.goal-shares dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+}
+@media (max-width: 720px) {
+  .primary-outcome {
+    padding: 20px;
+  }
+}

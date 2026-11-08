@@ -62,11 +62,11 @@ export default function IndexCards() {
               </div>
               <div>
                 <dt>Would have done it anyway</dt>
-                <dd className="tnum">{i.followed ? `${Math.round(i.p_without * 100)}%` : 'not replayed'}</dd>
+                <dd className="tnum">{i.p_without != null ? `${Math.round(i.p_without * 100)}%` : 'not replayed'}</dd>
               </div>
               <div className="l-card-score">
                 <dt>Influence</dt>
-                <dd className="tnum">{i.score.toFixed(2)}</dd>
+                <dd className="tnum">{(i.score ?? 0).toFixed(2)}</dd>
               </div>
             </dl>
           </article>

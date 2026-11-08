@@ -6,16 +6,22 @@ from app.pricing import cost_usd
 
 
 class Instruction(BaseModel):
-    to: str
-    kind: Literal["move", "flip"]
+    to: list[str]  # one or more named recipients; all the others when addressed to everyone
+    kind: Literal["move", "flip", "avoid"]  # avoid = prohibition: do not move or flip this chair
     chair: int
     x: int | None = None
     y: int | None = None
 
 
+class Cell(BaseModel):
+    x: int
+    y: int
+
+
 class MessageLabel(BaseModel):
     style: Literal["directive", "non_directive", "other"]
-    instruction: Instruction | None = None
+    instructions: list[Instruction] = []
+    proposed_cells: list[Cell] = []  # target cells the message proposes for a plan or layout
 
 
 SYSTEM = """You label chat messages from a cooperative game. Agents move and flip chairs on an 8x8 grid \
@@ -26,15 +32,23 @@ SYSTEM = """You label chat messages from a cooperative game. Agents move and fli
 - "non_directive": framing the problem, proposing an approach, asking questions, inviting input or summarising.
 - "other": everything else.
 
-2. instruction: set it ONLY when the message tells exactly one NAMED other agent (one of the listed agents, \
-never the sender) to do ONE concrete action on one specific chair:
-- kind "move" (carry the chair to a cell) or "flip" (turn it over), with the chair id;
-- x and y only when the message names an exact target cell for a move, otherwise null.
-Examples: "Sky, flip chair 2" -> {to: "Sky", kind: "flip", chair: 2}. \
-"Cy please move chair 5 to [3,4]" -> {to: "Cy", kind: "move", chair: 5, x: 3, y: 4}.
-Set instruction to null when: no agent is named ("someone flip chair 2"); it is a proposal for the group \
-("let's flip chair 2"); it is addressed to several agents or to the sender itself; no specific chair is given; \
-or it asks for several actions, unless one of them is clearly the instruction to that one agent."""
+2. instructions: a list, empty when there are none. Add one item for each request the sender makes of other \
+agents about ONE specific chair:
+- kind "move" (carry the chair; x and y only when an exact target cell is named, otherwise null), "flip" (turn it \
+over), or "avoid" (a prohibition: do not move or flip that chair, e.g. "Sky, leave chair 5 alone");
+- to: the agents it is addressed to, by name, from the listed agents and never the sender. When it is addressed to \
+everyone ("everyone", "all of you", "nobody touch chair 3"), list all the other agents.
+- one item per chair: "Sky, flip 3 and 5" gives two items.
+Examples: "Sky, flip chair 2" -> [{to: ["Sky"], kind: "flip", chair: 2}]. \
+"Sol please move chair 5 to [3,4]" -> [{to: ["Sol"], kind: "move", chair: 5, x: 3, y: 4}]. \
+"Sam and Sky, don't move chair 7" -> [{to: ["Sam", "Sky"], kind: "avoid", chair: 7}].
+Leave a request out when no agent is named and it is not addressed to everyone ("someone flip chair 2"); it is a \
+proposal for the group ("let's flip chair 2"); it is addressed to the sender itself; no specific chair is given; \
+or it is unclear which agent should do which chair ("Sam/Sky: 3 and 6").
+
+3. proposed_cells: the target cells the message proposes for chairs as a plan or layout, written as [x, y] in the \
+message (e.g. "ring on [3,3],[4,3],[5,3],..."). Leave out cells that only describe where chairs or agents are now. \
+Empty list when the message proposes no target cells."""
 
 
 def _user_text(sender: str, text: str, agents: list[str]) -> str:

@@ -165,7 +165,7 @@ The rich goal rotates too, offset from the leader goal, so over 16 layouts every
 
 The results show the four groups side by side:
 
-- the leader agent's **influence share**, against the 25% chance line;
+- the leader agent's **influence share**, against the 25% chance line (the main result);
 - **solve rate**, **average completion** and **time to solve**;
 - the style mix of the leader's messages, which also checks that it actually led in the style it was given.
 
@@ -177,13 +177,26 @@ A leader is **the agent whose messages measurably change what other agents do**.
 
 Measurement runs automatically after each game ends and takes a minute or two.
 
-1. **Find instructions.** An AI model reads every chat message and picks out instructions aimed at **one named agent** with **one concrete action**, for example "Sky, flip chair 2". "Someone flip chair 2" does not count.
-2. **Was it followed?** The game log is checked: did Sky do it within their **next 2 decisions**?
-3. **Did the message cause it?** For every followed instruction, Sky's decision is re-run **6 times** from the exact situation Sky was in: 3 times with the message and 3 times with it removed. If Sky does it more often with the message, the message had influence. If Sky would have done it anyway, it did not.
-4. **Influence.** Each instruction scores how much more often the action happened with the message than without it. The score is never below zero. An agent's influence is the sum of its scores.
-5. **The measured leader** is the agent with the most influence, if that influence comes from at least two different followers, reaches a minimum threshold, and is clearly the highest. Otherwise the game has **no leader**. In experiments with a leader, this tells whether the agent told to lead actually became the leader.
-6. **Influence share.** Each agent's share of the total influence in the game. With 4 agents, 25% is what chance would give.
-7. **Boss or workhorse.** For the agent with the biggest budget, we show both the influence it gave and the influence it received, which tells whether extra budget makes it the one giving orders or the one doing the work.
+1. **Find requests.** An AI model reads every chat message and picks out three kinds of request:
+   - **instructions**: one concrete action on one specific chair, for one or more named agents or for everyone, for example "Sky, flip chair 2" or "Sky, flip 3 and 5" (two instructions);
+   - **prohibitions**: leave a specific chair alone, for example "Sam, don't move chair 7";
+   - **plans**: target cells proposed for a layout, for example "ring on [3,3], [4,3], ...".
+   "Someone flip chair 2", "let's flip chair 2" and unclear splits like "Sam/Sky: 3 and 6" do not count.
+2. **Only decisions that saw the message count.** An agent's decision is only linked to a message if the message was already in the chat when the agent was asked.
+3. **What gets tested.**
+   - An instruction is **followed** if the agent does it within its **next 2 actions** after seeing it.
+   - A prohibition is tested on the agent's next decision made while free.
+   - A plan is tested for every agent whose next action carries a chair onto a proposed cell.
+4. **Did the message cause it?** The decision is re-run **10 times** from the exact situation the agent was in: **5 times with the message and 5 times without it**. If the same sender said the same thing several times, all those copies are removed together, so one action is credited only once.
+   - Instructions and plans score how much more often the action happens with the message than without it.
+   - Prohibitions score how much less often the agent touches the chair with the message.
+   - Scores are never below zero.
+5. **Missing, not zero.** A followed request that cannot be tested is recorded as missing, with the reason: the agent never decided after seeing it, it had no free moment, the spending cap was reached, or the replays failed. Missing tests are left out of the influence sums, and their share is shown.
+6. **Influence share (the main result).** An agent's influence is the sum of its scores (instructions, prohibitions and plans, also shown separately), and its share is its part of all the influence in the game. The main result is the share of the **agent told to lead**, or of the **richest agent** when nobody is told, against the 25% chance line. It is continuous and works in games where nobody qualifies as a leader. With equal budgets and no leader, the share by goal is shown instead. A game where nobody influenced anyone has no share (missing, not 0%).
+7. **The measured leader (secondary).** The agent with the most influence, if it reaches the minimum (0.5), is **at least 0.5 ahead of the next agent**, and has followers. Two rules are reported: **at least 1 follower** and **at least 2 followers**. Otherwise the game has **no leader**.
+8. **Boss or workhorse.** For the agent with the biggest budget, we show both the influence it gave and the influence it received, which tells whether extra budget makes it the one giving orders or the one doing the work.
+
+Plans make non-directive leadership measurable: an agent that steers the group by proposing a layout, without giving orders, gets credit when the others' moves follow its proposal because of the message.
 
 ### Leadership style
 

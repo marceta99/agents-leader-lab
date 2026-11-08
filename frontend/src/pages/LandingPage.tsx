@@ -104,12 +104,13 @@ export default function LandingPage() {
         <div className="l-leader-text">
           <h2 id="l-title">The leader is whoever gets followed</h2>
           <p>
-            Talking a lot does not make an agent the leader. For every instruction that was followed, we replay the
-            follower’s decision six times: three with the message, three with it removed.
+            Talking a lot does not make an agent the leader. For every instruction that was followed, every plan that
+            was adopted and every request to leave a chair alone, we replay the other agent’s decision ten times: five
+            with the message, five with it removed.
           </p>
           <p>
-            If the follower would have done the same thing anyway, the message gets no credit. The agent with the most
-            influence, from at least two different followers, is the measured leader.
+            If the follower would have done the same thing anyway, the message gets no credit. The main result is each
+            agent’s share of all that influence, against the 25% chance line.
           </p>
           <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
         </div>

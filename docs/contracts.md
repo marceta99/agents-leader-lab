@@ -192,19 +192,34 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 
 ## Run result (`runs.result`, written by measurement, read by the results UI)
 
+Measurement rules: `backend/app/measure/run.py` (docstring) and `product-overview.md` section 4. `measure_version` 2.
+
 ```json
 {
+  "measure_version": 2,
   "solved": true, "completion": 1.0, "seed": 1288342217, "duration_ms": 312000, "end_reason": "solved",
   "goals_met": {"square": true, "upside_down": true, "one_zone": true, "touching": true},
   "leader_agent": "Sky",           // agent told to lead; null in the none group
   "richest_agent": "Sam",          // unique max budget; null on a tie (e.g. 6/6/6/6)
   "leader_is_richest": false,      // null if either is null
-  "measured_leader": "Sky",        // null = no leader
-  "influence": {"Sam": 0.0, "Sky": 1.67, "Sol": 0.0, "Sage": 0.33},          // given
-  "influence_received": {"Sam": 1.0, "Sky": 0.0, "Sol": 0.67, "Sage": 0.33},
-  "influence_share": {"Sam": 0.0, "Sky": 0.83, "Sol": 0.0, "Sage": 0.17},    // all 0 if total is 0
-  "instructions": [{"message_id": 3, "from": "Sky", "to": "Sol", "action": {"kind": "flip", "chair": 2, "cell": null},
-                    "followed": true, "p_with": 1.0, "p_without": 0.33, "score": 0.67}],
+  "target_agent": "Sky",           // leader_agent, else richest_agent: whose share is the primary outcome
+  "target_share": 0.6875,          // primary outcome; null when nobody influenced anyone
+  "share_by_goal": {"square": 0.3125, "upside_down": 0.6875, "one_zone": 0.0, "touching": 0.0},
+  "measured_leader": "Sky",        // >= min_influence, >= 0.5 ahead of the next agent, >= 1 follower; null = none
+  "measured_leader_strict": "Sky", // same, >= 2 followers
+  "influence": {"Sam": 1.0, "Sky": 2.2, "Sol": 0.0, "Sage": 0.0},
+  "influence_by_type": {"Sky": {"instruction": 1.6, "prohibition": 0.6, "plan": 0.0}},
+  "influence_received": {"Sam": 0.6, "Sky": 0.0, "Sol": 2.0, "Sage": 0.6},
+  "influence_share": {"Sam": 0.3125, "Sky": 0.6875, "Sol": 0.0, "Sage": 0.0},   // all null if total is 0
+  "followers": {"Sky": ["Sage", "Sam", "Sol"], "Sam": ["Sol"]},
+  "instructions": [                // one entry per (message, recipient)
+    {"message_id": 3, "from": "Sky", "to": "Sol", "type": "instruction|prohibition|plan",
+     "action": {"kind": "flip|move|avoid", "chair": 2, "cell": null},
+     "followed": true,             // null: the recipient never decided after seeing it
+     "p_with": 1.0, "p_without": 0.2, "score": 0.8,   // score null = missing (see untested_reason); 0 = no influence
+     "untested_reason": null}      // message_not_seen | no_idle_decision | over_budget | replay_failed
+  ],
+  "tests": {"run": 4, "entries_scored": 6, "untested": {"message_not_seen": 1}},
   "styles": {"3": "directive", "4": "non_directive"},     // message id (string) -> directive | non_directive | other
   "style_mix": {"Sky": {"directive": 2, "non_directive": 1, "other": 0}},
   "invalid_share": 0.02,           // share of decisions that ended skipped_invalid
@@ -212,6 +227,8 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
   "measure_cost_usd": 0.04
 }
 ```
+
+Results measured with version 1 (before 2026-11-08) have one instruction per message, 3+3 replays, no `type`, and 0 instead of missing.
 
 ## Global settings (`app/settings_store.py`)
 
@@ -261,7 +278,7 @@ All paths are same-origin. Auth is an httpOnly cookie `session` (a JWT). Errors 
 | `DELETE /api/experiments/{id}` | | 204 (stops first if running) |
 | `GET /api/experiments/{id}/results?richest=any\|leader_is_richest\|leader_not_richest` | | `ExperimentResults` |
 | `GET /api/experiments/{id}/export.json` | | Full JSON (config, runs with result, events, decisions without any key) |
-| `GET /api/experiments/{id}/export.zip` | | `runs.csv` + `messages.csv` |
+| `GET /api/experiments/{id}/export.zip` | | `runs.csv` + `messages.csv` + `instructions.csv` (one row per instruction entry) |
 
 Response shapes:
 
@@ -276,7 +293,7 @@ Response shapes:
    "excluded": n}
   ```
 
-  `GroupStats` is `{runs, solved_rate, completion_avg, leader_rate, avg_duration_s, richest_leader_rate, leader_became_measured_rate, leader_share_avg, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
+  `GroupStats` is `{runs, solved_rate, completion_avg, target_share_avg, target_share_runs, share_by_goal_avg, untested_rate, leader_rate, leader_rate_strict, avg_duration_s, richest_leader_rate, leader_became_measured_rate, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
 
 **Runs**
 

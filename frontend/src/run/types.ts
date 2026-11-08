@@ -108,15 +108,19 @@ export type RunEvent =
 
 export type EventType = RunEvent['type']
 
+// One entry per (message, recipient): an instruction, a prohibition (kind "avoid") or an adopted plan.
+// score null = could not be tested (untested_reason says why); 0 = tested or not followed, no influence.
 export interface Instruction {
   message_id: number
   from: string
   to: string
+  type?: 'instruction' | 'prohibition' | 'plan' // missing on results measured before measure_version 2
   action: { kind: string; chair: number | null; cell: Cell | null }
-  followed: boolean
-  p_with: number
-  p_without: number
-  score: number
+  followed: boolean | null
+  p_with: number | null
+  p_without: number | null
+  score: number | null
+  untested_reason?: string | null
 }
 
 // runs.result; written by measurement, may be null or partial before that.
@@ -130,10 +134,14 @@ export interface RunResult {
   leader_agent?: string | null
   richest_agent?: string | null
   leader_is_richest?: boolean | null
-  measured_leader?: string | null
+  measure_version?: number
+  measured_leader?: string | null // at least 1 follower
+  measured_leader_strict?: string | null // at least 2 followers
+  target_agent?: string | null // told to lead, else the richest agent
+  target_share?: number | null // primary outcome; null when nobody influenced anyone
   influence?: Record<string, number>
   influence_received?: Record<string, number>
-  influence_share?: Record<string, number>
+  influence_share?: Record<string, number | null>
   instructions?: Instruction[]
   styles?: Record<string, Style>
   style_mix?: Record<string, Record<Style, number>>

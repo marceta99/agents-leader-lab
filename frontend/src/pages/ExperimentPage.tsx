@@ -40,7 +40,11 @@ type GroupStats = {
   avg_duration_s: number | null
   richest_leader_rate: number | null
   leader_became_measured_rate: number | null
-  leader_share_avg: number | null
+  target_share_avg: number | null
+  target_share_runs: number
+  share_by_goal_avg: Record<string, number | null>
+  untested_rate: number | null
+  leader_rate_strict: number | null
   style_mix: StyleMixData
 }
 type Results = { groups: Record<string, GroupStats>; overall: GroupStats; excluded: number }
@@ -218,19 +222,27 @@ function GroupColumn({ g, s, prompts }: { g: string; s: GroupStats | undefined; 
         <p className="muted small-text tnum">{s ? `${s.runs} ${s.runs === 1 ? 'run' : 'runs'}` : 'No runs'}</p>
       </div>
       <div className="gcell">
-        <span className="glabel">Leader agent's influence share</span>
-        {g === 'none' ? (
-          <p className="muted small-text">No agent is told to lead in this group.</p>
+        <span className="glabel">{g === 'none' ? "Richest agent's influence share" : "Leader agent's influence share"}</span>
+        {s?.target_share_avg == null ? (
+          <p className="muted small-text">
+            {g === 'none' ? 'No agent is told to lead, and with equal budgets nobody is the richest.' : 'No influence measured yet.'}
+          </p>
         ) : (
           <>
-            <span className="gvalue tnum">{percent(s?.leader_share_avg)}</span>
-            <ChanceBar rate={s?.leader_share_avg ?? null} label={`${GROUP_LABELS[g]}: leader agent's influence share`} />
+            <span className="gvalue tnum">{percent(s.target_share_avg)}</span>
+            <ChanceBar rate={s.target_share_avg} label={`${GROUP_LABELS[g]}: influence share`} />
           </>
         )}
       </div>
       <div className="gcell">
         <span className="glabel">Became the measured leader</span>
         <span className="gvalue tnum">{g === 'none' ? '—' : percent(s?.leader_became_measured_rate)}</span>
+      </div>
+      <div className="gcell">
+        <span className="glabel">Had a measured leader, 1+ / 2+ followers</span>
+        <span className="gvalue tnum">
+          {percent(s?.leader_rate)} / {percent(s?.leader_rate_strict)}
+        </span>
       </div>
       <div className="gcell">
         <span className="glabel">Solved</span>
@@ -275,6 +287,7 @@ function ResultsSection({ exp }: { exp: Detail }) {
 
   const o = results?.overall
   const equalBudgets = new Set(exp.config.budget).size === 1
+  const targetLabel = exp.config.add_leader ? 'agent told to lead' : equalBudgets ? null : 'richest agent'
 
   return (
     <section className="block" aria-labelledby="results-title">
@@ -345,8 +358,14 @@ function ResultsSection({ exp }: { exp: Detail }) {
                 <dd className="tnum">{percent(o.solved_rate)}</dd>
               </div>
               <div>
-                <dt>Had a measured leader</dt>
-                <dd className="tnum">{percent(o.leader_rate)}</dd>
+                <dt>Had a measured leader, 1+ / 2+ followers</dt>
+                <dd className="tnum">
+                  {percent(o.leader_rate)} / {percent(o.leader_rate_strict)}
+                </dd>
+              </div>
+              <div>
+                <dt>Followed but not testable</dt>
+                <dd className="tnum">{percent(o.untested_rate)}</dd>
               </div>
               <div>
                 <dt>Average game, min:sec</dt>
@@ -357,6 +376,34 @@ function ResultsSection({ exp }: { exp: Detail }) {
                 <dd className="tnum">{percent(o.completion_avg)}</dd>
               </div>
             </dl>
+
+            <div className="primary-outcome">
+              <h3>{targetLabel ? `Influence share of the ${targetLabel}` : 'Influence share by goal'}</h3>
+              {targetLabel ? (
+                o.target_share_avg == null ? (
+                  <p className="muted">No run has measured influence yet.</p>
+                ) : (
+                  <>
+                    <p className="richest-figure tnum">{percent(o.target_share_avg)}</p>
+                    <ChanceBar rate={o.target_share_avg} label={`Influence share of the ${targetLabel}`} axis />
+                  </>
+                )
+              ) : (
+                <dl className="goal-shares">
+                  {Object.entries(o.share_by_goal_avg).map(([goal, v]) => (
+                    <div key={goal}>
+                      <dt>{goal.replace('_', ' ')}</dt>
+                      <dd className="tnum">{percent(v)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              <p className="muted small-text">
+                The main result: of all the influence measured in a run, the share that came from{' '}
+                {targetLabel ? `the ${targetLabel}` : 'the agent playing each goal'}, averaged over the{' '}
+                {o.target_share_runs} runs where someone influenced someone. With four agents, chance gives 25%.
+              </p>
+            </div>
 
             <div className="results-split">
               <div className="richest">
