@@ -2,14 +2,14 @@
 	admin off
 }
 
-# Railway sets PORT. BACKEND_HOST defaults to the backend service on Railway's private network.
+# Railway sets PORT. BACKEND_HOST is the backend private address, e.g. ${{backend.RAILWAY_PRIVATE_DOMAIN}}:8000.
 :{$PORT:8080} {
 	encode gzip
 	handle /api/* {
-		reverse_proxy {$BACKEND_HOST:backend.railway.internal:8000}
+		reverse_proxy {$BACKEND_HOST}
 	}
 	handle /ws/* {
-		reverse_proxy {$BACKEND_HOST:backend.railway.internal:8000}
+		reverse_proxy {$BACKEND_HOST}
 	}
 	handle {
 		root * /srv
