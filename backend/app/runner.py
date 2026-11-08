@@ -32,8 +32,17 @@ LEADER_GROUPS = ("free", "directive", "nondirective")
 DEV_BUDGET = [5, 5, 5, 5]
 
 
+RETRY_LATER_MS = 15_000  # after a rate limit / overload that outlived the SDK's own retries
+TRANSIENT_ERRORS = ("RateLimitError", "OverloadedError", "InternalServerError", "APIConnectionError",
+                    "APITimeoutError", "ServiceUnavailableError")
+
+
 def _is_out_of_credit(error: str | None) -> bool:
     return bool(error) and error.startswith("BadRequestError") and "credit balance" in error.lower()
+
+
+def _is_transient(error: str | None) -> bool:
+    return bool(error) and error.startswith(TRANSIENT_ERRORS)
 
 
 class _Run:
@@ -43,6 +52,9 @@ class _Run:
         s = (cfg.get("settings") or {}) if exp else settings_store.DEFAULTS
         self.model, self.effort = cfg.get("model"), s.get("effort", "low")
         self.call_limit, self.min_influence = s.get("call_limit", 60), s.get("min_influence", 0.5)
+        # Min gap between one agent's calls: stops chat storms (every message wakes everyone) from burning
+        # calls and the key's tokens-per-minute limit. Scripted dev runs don't need it.
+        self.min_gap_ms = int(s.get("min_call_gap_s", 3) * 1000) if mode == "llm" else 0
         layout = make_layout(run.layout_no, cfg.get("budget", DEV_BUDGET), solo=run.group == "solo")
         leader = layout.leader if run.group in LEADER_GROUPS else None
         gcfg = GameConfig(
@@ -64,6 +76,8 @@ class _Run:
         self.inflight: dict[str, asyncio.Task] = {}
         self.n = dict.fromkeys(self.game.agents, 0)
         self.calls = dict.fromkeys(self.game.agents, 0)
+        self.next_ok = dict.fromkeys(self.game.agents, 0)  # game ms before which the agent is not asked again
+        self.rate_limited = 0
         self.calls_in_flight = 0
         self.last_call_cost = 0.0
         # pending writes (flushed by the tick loop) and full log for measurement
@@ -144,7 +158,7 @@ class _Run:
     def spawn_calls(self):
         game, now = self.game, self.now()
         for agent in game.agents:
-            if game.ended or agent in self.inflight or not game.wants_call(agent, now):
+            if game.ended or agent in self.inflight or now < self.next_ok[agent] or not game.wants_call(agent, now):
                 continue
             triggers = game.take_triggers(agent)
             self.inflight[agent] = asyncio.create_task(self.agent_turn(agent, triggers))
@@ -174,8 +188,15 @@ class _Run:
                     return
                 finally:
                     self.calls_in_flight -= 1
+                    self.next_ok[agent] = self.now() + self.min_gap_ms
                 if _is_out_of_credit(res.error):
                     self.fatal = "out_of_credit"
+                    return
+                if res.decision is None and _is_transient(res.error):
+                    # Not the agent's fault: keep its news for the next call and ask again later.
+                    self.rate_limited += 1
+                    game.agents[agent]["triggers"][:0] = [t for t in triggers if not t.startswith("Your last answer")]
+                    self.next_ok[agent] = self.now() + RETRY_LATER_MS
                     return
                 self.calls[agent] += 1
                 self.last_call_cost = res.cost_usd
@@ -291,7 +312,7 @@ async def execute_run(run_id: int, *, mode: str = "llm", tick_ms: int | None = N
         game = r.game
         ended = game.events[-1]["data"]
         result = {"solved": ended["solved"], "duration_ms": ended["duration_ms"], "end_reason": ended["reason"],
-                  "goals_met": ended["met"]}
+                  "goals_met": ended["met"], "rate_limited_calls": r.rate_limited}
         measure_cost = 0.0
         if mode == "llm" and game.ended != "stopped":
             async with SessionLocal() as db:

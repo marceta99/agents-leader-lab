@@ -9,10 +9,11 @@ DEFAULTS: dict = {
     "time_limit_s": 600,
     "call_limit": 60,
     "heartbeat_s": 10,
+    "min_call_gap_s": 3,
     "budget_max_per_agent": 12,
     "budget_min_total": 16,
     "max_runs": 25,
-    "parallel_runs": 3,
+    "parallel_runs": 1,  # product allows up to 3; 1 by default because typical keys hit tokens-per-minute limits
     "global_run_cap": 30,
     "models": ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
     "effort": "low",

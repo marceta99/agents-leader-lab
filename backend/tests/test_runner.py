@@ -18,7 +18,8 @@ from app.models import ApiKey, Decision as DecisionRow, Experiment, Run, RunEven
 from app.security import encrypt
 from app.settings_store import DEFAULTS
 
-FAST = {"cell_seconds": 0.02, "flip_seconds": 0.02, "heartbeat_s": 0.2, "time_limit_s": 20, "parallel_runs": 1}
+FAST = {"cell_seconds": 0.02, "flip_seconds": 0.02, "heartbeat_s": 0.2, "time_limit_s": 20, "parallel_runs": 1,
+        "min_call_gap_s": 0}
 DONE = ("finished", "stopped", "failed")
 MEASURE = {"cost": 0.0}
 
@@ -203,6 +204,25 @@ async def test_invalid_twice_skipped(auth_client, monkeypatch):
     assert [d.outcome for d in ada[:2]] == ["invalid", "skipped_invalid"]
     evs = await events(runs[0].id)
     assert not [e for e in evs if e.type == "chair_taken" and e.data["agent"] == "Ada"]  # no budget spent
+
+
+async def test_rate_limit_is_retried_later_not_invalid(auth_client, monkeypatch):
+    monkeypatch.setattr(runner, "RETRY_LATER_MS", 50)
+    seen = set()
+
+    def behave(agent, kw):
+        if agent == "Ada" and "Ada" not in seen:
+            seen.add("Ada")
+            raise anthropic.RateLimitError(
+                "slow down", response=httpx2.Response(429, request=httpx2.Request("POST", "https://x")), body=None)
+        return Decision(action="wait")
+    use_client(monkeypatch, behave)
+    await add_key()
+    _, runs = await wait_exp(await create(auth_client))
+    assert runs[0].status == "finished" and runs[0].result["rate_limited_calls"] == 1
+    ada = await decisions(runs[0].id, "Ada")
+    assert ada[0].outcome == "skipped_chose"  # the 429 left no invalid decision behind
+    assert "The game has started." in ada[0].trigger  # its news was kept for the next call
 
 
 async def test_auth_error_stops_experiment(auth_client, monkeypatch):

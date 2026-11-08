@@ -15,6 +15,7 @@ const NUMBER_FIELDS: [key: string, label: string, step: number][] = [
   ['time_limit_s', 'Time limit per run (seconds)', 1],
   ['call_limit', 'Question limit (times each agent can be asked per run)', 1],
   ['heartbeat_s', 'Ask an idle agent again after (seconds with no change)', 1],
+  ['min_call_gap_s', 'Minimum seconds between two questions to the same agent', 0.5],
   ['budget_max_per_agent', 'Maximum budget per agent', 1],
   ['budget_min_total', 'Minimum total budget', 1],
   ['max_runs', 'Maximum runs per experiment (per group)', 1],

@@ -2,11 +2,11 @@
 
 from app.pricing import cost_usd
 
-CALLS_PER_AGENT = 35  # decision calls per agent per run (triggers + heartbeats; the hard limit is call_limit)
-INPUT_TOKENS_PER_CALL = 3500  # system prompt + state block + chat
-OUTPUT_TOKENS_PER_CALL = 700  # at effort "low", thinking included
+CALLS_PER_AGENT = 45  # decision calls per agent per run; first real Haiku run: ~52 without the call gap
+INPUT_TOKENS_PER_CALL = 8000  # system prompt + state block + growing chat; first real run averaged 8.2K
+OUTPUT_TOKENS_PER_CALL = 300  # at effort "low", thinking included; first real run averaged 300
 EFFORT_OUTPUT_FACTOR = {"low": 1.0, "medium": 2.0, "high": 4.0}
-MEASURE_FACTOR = 0.4  # measurement (labels + replays) adds about 40% on top of the game
+MEASURE_FACTOR = 0.3  # measurement (labels + replays); first real run: 22% of game cost
 
 
 def estimate(config: dict, settings: dict) -> dict:
