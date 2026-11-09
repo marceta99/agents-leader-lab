@@ -1888,6 +1888,7 @@ table.runs tr.layout-start td {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.soon-note .chip,
 .agent-count .chip,
 .note .chip {
   margin-right: 6px;

@@ -339,6 +339,9 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
               </Choice>
             ))}
           </div>
+          <p className="muted small-text soon-note">
+            <span className="chip">Coming soon</span> More models in a future release.
+          </p>
         </Section>
       </div>
 
