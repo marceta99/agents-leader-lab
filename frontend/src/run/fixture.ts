@@ -12,7 +12,7 @@ function push<K extends EventType>(t: number, type: K, data: Extract<RunEvent, {
 }
 
 const pos: Record<string, Cell> = { Sam: [0, 0], Sky: [7, 0], Sol: [0, 7], Sage: [7, 7] }
-const budget: Record<string, number> = { Sam: 5, Sky: 6, Sol: 4, Sage: 5 }
+const budget: Record<string, number> = { Sam: 6, Sky: 6, Sol: 6, Sage: 6 } // equal budgets, no leader
 const decN: Record<string, number> = { Sam: 0, Sky: 0, Sol: 0, Sage: 0 }
 let msgId = 0
 
@@ -61,17 +61,17 @@ const NONE = { square: false, upside_down: false, one_zone: false, touching: fal
 
 push(0, 'run_started', {
   layout_no: 3,
-  group: 'directive',
+  group: 'none',
   grid: 8,
   cell_ms: CELL,
   flip_ms: FLIP,
   time_limit_ms: 600_000,
   know_all_goals: false,
   agents: [
-    { name: 'Sam', cell: [0, 0], goal: 'square', budget: 5, is_leader: false, leader_style: null },
-    { name: 'Sky', cell: [7, 0], goal: 'upside_down', budget: 6, is_leader: true, leader_style: 'directive' },
-    { name: 'Sol', cell: [0, 7], goal: 'touching', budget: 4, is_leader: false, leader_style: null },
-    { name: 'Sage', cell: [7, 7], goal: 'one_zone', budget: 5, is_leader: false, leader_style: null },
+    { name: 'Sam', cell: [0, 0], goal: 'square', budget: 6, is_leader: false, leader_style: null },
+    { name: 'Sky', cell: [7, 0], goal: 'upside_down', budget: 6, is_leader: false, leader_style: null },
+    { name: 'Sol', cell: [0, 7], goal: 'touching', budget: 6, is_leader: false, leader_style: null },
+    { name: 'Sage', cell: [7, 7], goal: 'one_zone', budget: 6, is_leader: false, leader_style: null },
   ],
   chairs: [
     { id: 1, cell: [2, 1], upside_down: false },
@@ -86,7 +86,7 @@ push(0, 'run_started', {
 })
 push(0, 'goals', { met: NONE })
 
-// Sky (leader, directive) opens with a plan and flips chair 7.
+// Nobody is told to lead. Sky opens with a plan and flips chair 7, and the others start following.
 decide(1800, 'Sky', 'flip', 7)
 say(1800, 'Sky', "Plan: a 3x3 ring of chairs around (1,1) in the top-left zone. Sam, bring chair 5 to (2,2). Sol, flip chair 4.")
 push(1800, 'notes', { agent: 'Sky', text: 'Ring centre (1,1). Flip everything once it is in place. Budget 6.' })
@@ -127,11 +127,11 @@ const tDee = move(16500, 'Sage', 8, [2, 6], [0, 2]) // 30500
 
 decide(tAda + 2000, 'Sam', 'move', 7, [2, 0])
 say(tAda + 2000, 'Sam', "Chair 5 is at (2,2). Bringing chair 7 to (2,0).")
-push(tAda + 2000, 'notes', { agent: 'Sam', text: 'Ring: need (0,0),(1,0),(2,0),(0,2),(1,2). Have 1, 5, 4 and 8 coming. 4 actions left.' })
+push(tAda + 2000, 'notes', { agent: 'Sam', text: 'Ring: need (0,0),(1,0),(2,0),(0,2),(1,2). Have 1, 5, 4 and 8 coming. 5 actions left.' })
 const tAda2 = move(tAda + 2000, 'Sam', 7, [6, 1], [2, 0]) // 40500
 
 decide(tCy + 2000, 'Sol', 'wait', null, null, 'skipped_chose')
-say(tCy + 2000, 'Sol', 'Chair 4 is at (0,1). I have 2 actions left, tell me where they help.')
+say(tCy + 2000, 'Sol', 'Chair 4 is at (0,1). I have 4 actions left, tell me where they help.')
 push(tCy + 2000, 'notes', { agent: 'Sol', text: 'Touching goal: ring chairs touch anyway. Save actions.' })
 
 decide(tBo + 1000, 'Sky', 'flip', 5)
@@ -168,14 +168,14 @@ export const FIXTURE_RESULT: RunResult = {
   duration_ms: 62000,
   end_reason: 'stopped',
   goals_met: NONE,
-  leader_agent: 'Sky',
-  richest_agent: 'Sky',
-  leader_is_richest: true,
+  leader_agent: null,
+  richest_agent: null,
+  leader_is_richest: null,
   measure_version: 2,
   measured_leader: 'Sky',
   measured_leader_strict: 'Sky',
-  target_agent: 'Sky',
-  target_share: 1,
+  target_agent: null,
+  target_share: null,
   influence: { Sam: 0, Sky: 3, Sol: 0, Sage: 0 },
   influence_share: { Sam: 0, Sky: 1, Sol: 0, Sage: 0 },
   share_by_goal: { square: 0, upside_down: 1, touching: 0, one_zone: 0 },
@@ -195,7 +195,7 @@ export const FIXTURE_RUN: RunInfo = {
   id: 0,
   experiment_id: null,
   experiment_name: 'Demo (fixture)',
-  group: 'directive',
+  group: 'none',
   layout_no: 3,
   status: 'done',
   end_reason: 'stopped',
@@ -204,8 +204,8 @@ export const FIXTURE_RUN: RunInfo = {
   is_owner: false,
   setup: {
     know_all_goals: false,
-    budget: [6, 5, 5, 4],
-    add_leader: true,
+    budget: [6, 6, 6, 6],
+    add_leader: false,
     runs: null,
     model: 'claude-haiku-5-5',
     leader_prompts: null,

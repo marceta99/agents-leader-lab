@@ -171,7 +171,7 @@ export default function LandingPage() {
           </ol>
           <p className="l-small">
             If the follower would have done the same anyway, the message gets no credit. These cards come from the dummy
-            demo run, where Sky was told to lead by giving instructions.
+            demo run: equal budgets and no leader, where Sky took the lead on its own by giving instructions.
           </p>
         </div>
         <IndexCards />

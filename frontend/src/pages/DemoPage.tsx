@@ -33,7 +33,8 @@ export function DemoRun({ back = false }: { back?: boolean }) {
       {runId === 'fixture' && (
         <p className="note dummy-note" role="note">
           <span className="chip">Dummy run</span> A scripted game made to give an overview of how an experiment runs
-          and how it is measured. The agents, messages and numbers are examples, not real experiment data.
+          and how it is measured. Its experiment is set up with equal budgets and no leader, so any leader that
+          appears is emergent. The agents, messages and numbers are examples, not real experiment data.
         </p>
       )}
       <Suspense fallback={<ViewerFallback />}>
