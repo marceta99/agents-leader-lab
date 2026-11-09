@@ -122,8 +122,8 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
       </div>
       <div className="hero-copy">
         <p>
-          A sandbox for research teams. Give AI agents their own goals in one shared room, put nobody in charge, change
-          one condition at a time, and measure whose messages the others actually follow.
+          A sandbox where research teams test how leadership emerges in teams of AI agents with no boss. Give each
+          agent its own goal, change one condition at a time, and measure whose messages the others actually follow.
         </p>
         <div className="hero-cta">
           <Link

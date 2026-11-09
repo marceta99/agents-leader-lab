@@ -12,52 +12,36 @@ import { DemoRun } from './DemoPage'
 type Demo = { experiment: ExperimentSummary; runs: RunSummary[] }
 
 const QUESTIONS = [
-  [
-    'When',
-    'does a leader appear?',
-    'Coordination roles tend to arise where information is spread out. We compare agents that each know only their own goal with agents that know all four goals.',
-  ],
-  [
-    'Who',
-    'becomes the leader?',
-    'Others tend to depend on whoever holds the resources. We test whether the agent with the largest action budget leads more often than chance, which is 25% with four agents.',
-  ],
-  [
-    'How',
-    'does it lead?',
-    'Directive leaders decide and assign; non-directive ones frame, propose, ask and summarise. We record which styles leaders use unprompted, and test each one by telling an agent to lead in it and comparing the group with a team that has no leader.',
-  ],
+  ['When', 'does a leader appear?', 'Agents that know only their own goal, against agents that know all four.'],
+  ['Who', 'becomes the leader?', 'Whether the agent with the largest budget leads more often than chance (25%).'],
+  ['How', 'does it lead?', 'Directive (decide and assign) against non-directive (frame, propose, ask, summarise).'],
 ]
 
-// What an experiment can change. `soon`: shown, not yet available.
+// What an experiment can change, in the order the form asks. `soon`: shown, not yet available.
 const VARY: { name: string; text: string; soon?: boolean }[] = [
-  { name: 'Goals', text: 'Keep the four built-in goals or write your own for any agent.' },
-  { name: 'Agent prompts', text: 'Edit just the goal, or rewrite everything an agent is told about itself.' },
-  { name: 'What they know', text: 'Each agent knows only its own goal, or everyone knows all of them.' },
+  { name: 'Number of agents', text: 'Teams of 1 to 8 agents. Every experiment uses four for now.', soon: true },
+  { name: 'Goals', text: 'Keep the four built-in goals, or write your own for any agent.' },
+  { name: 'Prompts', text: 'Edit just an agent’s goal, or rewrite everything it is told about itself.' },
   { name: 'Budgets', text: 'Equal actions for all, or one agent far richer than the rest.' },
-  { name: 'A leader', text: 'Tell one agent to lead, by giving instructions or by asking and proposing, in your own words.' },
-  { name: 'Model', text: 'Claude Haiku, Sonnet or Opus for every agent.' },
-  { name: 'Team size', text: 'Teams of 1 to 8 agents.', soon: true },
-  { name: 'Rules', text: 'Read the full rules every agent gets. Editing them comes later.', soon: true },
+  { name: 'Who knows what', text: 'Each agent knows only its own goal, or everyone knows all of them.' },
+  { name: 'Leader style', text: 'No leader, or one agent told to lead, directive or non-directive, in your own words.' },
+  { name: 'Model', text: 'Claude Haiku, Sonnet or Opus. More models are coming.' },
+]
+
+// How influence is measured, in three steps.
+const MEASURE = [
+  ['Find the requests', 'A model reads the chat and lists every instruction, prohibition and proposed plan, and who it was for.'],
+  ['Replay 5 + 5', 'Each follower decision that matched a request is replayed five times with the message and five times without it.'],
+  ['Share of influence', 'Influence is how much more often the follower did it with the message. Each agent’s share of all influence is compared with the 25% chance line.'],
 ]
 
 const STEPS = [
-  [
-    'One room, eight chairs',
-    'An 8 x 8 floor split into four coloured zones, with eight numbered chairs. The room stands in for a shared codebase: everyone works on the same objects.',
-  ],
-  [
-    'Four agents, four goals',
-    'Sam, Sky, Sol and Sage each get a goal, such as “Turn all the chairs upside down”, and a budget of actions. Nobody is put in charge.',
-  ],
-  [
-    'Real time, one chat',
-    'No turns: agents walk, carry or flip chairs while the others move. Each move or flip costs one action. One shared chat is the only way to agree on anything.',
-  ],
-  [
-    'The game ends',
-    'When every goal is met, the actions run out, the agents only talk without acting, or ten minutes pass. The built-in goals only look like they clash: a hollow square of upside-down chairs in the named zone meets all four.',
-  ],
+  ['The room', 'An 8 x 8 floor in four coloured zones. It stands in for a shared codebase: everyone works on the same things.'],
+  ['The chairs', 'Eight numbered chairs, each on its legs or upside down. A chair is only taken while someone carries or flips it.'],
+  ['Actions', 'No turns: everyone moves at once, in real time. Agents walk, carry a chair to a new cell, or flip it where it stands.'],
+  ['Budget', 'Each move or flip costs one action. Every agent has its own budget and can see everyone else’s.'],
+  ['Chat', 'One shared chat, seen by all. It is the only way to agree on anything; nobody is put in charge.'],
+  ['The end', 'All goals met, all actions spent, only talk and no action (gridlock), or ten minutes. The built-in goals only look like they clash: one hollow square of upside-down chairs in the named zone meets all four.'],
 ]
 
 // Tilt for each print in the gallery; repeats if there are more runs.
@@ -112,14 +96,14 @@ export default function LandingPage() {
 
       <section className="l-wrap l-vary" aria-labelledby="v-title">
         <div className="l-vary-intro">
-          <h2 id="v-title">A lab for flat agent teams</h2>
+          <h2 id="v-title">What you can vary</h2>
           <p>
-            More and more work is split among AI agents that answer to different teams. Nobody designed a hierarchy
-            between them, so any leadership that appears is emergent, and the people overseeing them may not see it.
+            Work is more and more split among AI agents that answer to different teams. Nobody designed a hierarchy
+            between them, so any leadership that appears is emergent, and easy to miss.
           </p>
           <p>
-            The lab lets a research team test which conditions make an agent take the lead. Change one thing, keep the
-            rest, and every run plays the same numbered layouts, so groups compare fairly.
+            Every experiment plays the same game on the same numbered layouts. Change one condition, keep the rest, and
+            compare the groups fairly.
           </p>
         </div>
         <ul className="l-vary-grid">
@@ -139,18 +123,21 @@ export default function LandingPage() {
         <div className="l-leader-text">
           <h2 id="l-title">How influence is measured</h2>
           <p>
-            We call an agent a leader when its messages measurably change what the others do, not when it talks the most
-            or calls itself one. For every instruction that was followed, every plan that was adopted and every request to
-            leave a chair alone, we replay the other agent’s decision ten times: five with the message, five with it
-            removed.
+            A leader is the agent whose messages measurably change what the others do, not the one that talks most or
+            calls itself one.
           </p>
-          <p>
-            If the follower would have done the same thing anyway, the message gets no credit. The main result is each
-            agent’s share of all that influence, against the 25% chance line. Counting adopted plans matters: a leader
-            that steers without giving orders would otherwise be invisible, and monitors need to see whose framing and
-            proposals the group takes up.
+          <ol className="l-measure">
+            {MEASURE.map(([title, text]) => (
+              <li key={title}>
+                <strong>{title}</strong>
+                <span>{text}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="l-small">
+            If the follower would have done the same anyway, the message gets no credit. These cards come from the dummy
+            demo run, where Sky was told to lead by giving instructions.
           </p>
-          <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
         </div>
         <IndexCards />
       </section>
@@ -158,8 +145,8 @@ export default function LandingPage() {
       <section className="l-wrap l-steps" aria-labelledby="s-title">
         <h2 id="s-title">The Chair Game</h2>
         <p className="l-steps-intro">
-          The game every experiment plays. Simple enough to check automatically, open enough that the agents have to
-          talk to get anywhere.
+          The game every experiment plays. Simple enough to check automatically, open enough that the agents have to talk
+          to get anywhere.
         </p>
         <ol>
           {STEPS.map(([title, text], i) => (
@@ -176,22 +163,16 @@ export default function LandingPage() {
 
       <section className="l-wrap l-question" aria-labelledby="q-title">
         <div className="l-question-intro">
-          <p className="l-kicker">Example study</p>
-          <h2 id="q-title">Four teams, four agents, one codebase</h2>
+          <h2 id="q-title">Example study</h2>
           <p>
-            Organisations split project work among specialist teams, each with its own goal. Picture a software project
-            where four teams each deploy an AI agent: one builds a new feature, one keeps the tests passing, one fixes
-            security vulnerabilities, one keeps the documentation current. The goals should complement each other, but
-            all four agents change the same code, so one agent’s change can undo another’s work.
+            Four teams each deploy an AI agent on one software project: a new feature, passing tests, security fixes,
+            current docs. The goals fit together, but all four agents change the same code, and nobody is in charge.
           </p>
           <p>
-            Agent systems built by one team usually put someone in charge: an orchestrator, a manager, or a fixed pipeline
-            of roles. When each team sets up its own agent, nobody is in charge, so the agents have to coordinate as
-            equals, by talking and adapting to each other.
-          </p>
-          <p>
-            <strong>Do they rebuild direct supervision on their own?</strong> Does one agent start directing the others,
-            and if so, when, which agent, and in what style?
+            <strong>Does one agent start directing the others?</strong> The risk is influence nobody planned: a leader’s
+            mistakes spread through the group, and oversight built around the designed structure does not see it. The
+            study varies two conditions every multi-team project has, spread-out information and uneven resources, and
+            tests two leader styles.
           </p>
         </div>
         <dl className="l-questions">
@@ -205,29 +186,6 @@ export default function LandingPage() {
           ))}
         </dl>
       </section>
-
-      <section className="l-wrap l-why" aria-labelledby="w-title">
-        <h2 id="w-title">The risk is unplanned influence</h2>
-        <div className="l-why-text">
-          <p>
-            An emergent leader is not harmful in itself; it may help the group succeed. The concern is influence nobody
-            planned: the leader steers the others’ actions, so its mistakes or misaligned goals spread through the group,
-            and oversight built around the designed structure does not see it.
-          </p>
-          <p>
-            It has already happened. In an incident documented by METR, agents meant to be isolated organised themselves,
-            and one came to assign work to hundreds of others. The case here is milder: the channel is intended, the
-            leader is not. The aim is not to prevent emergent leadership but to learn what causes it, so deployers can
-            anticipate it before they deploy instead of discovering it afterwards.
-          </p>
-          <p>
-            That incident combined many conditions. We vary two that deployers set and that every multi-team project has,
-            each one separately: <strong>information spread out</strong>, where each agent holds only its own goal, and{' '}
-            <strong>uneven resources</strong>, where one agent gets a much larger budget than the rest.
-          </p>
-        </div>
-      </section>
-
 
       <DemoSection />
 
