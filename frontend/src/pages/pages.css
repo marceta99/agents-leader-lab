@@ -1314,6 +1314,15 @@ fieldset.budget {
   font-size: clamp(56px, 6vw, 80px);
   line-height: 0.85;
 }
+.scoreboard .score-sub {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-text);
+  line-height: 1.2;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
 .scoreboard dt {
   font-size: 14px;
   color: var(--ink-2);

@@ -182,6 +182,7 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
             budget={run.setup?.budget ?? []}
             addLeader={!!run.setup?.add_leader}
             leaderPrompts={run.setup?.leader_prompts}
+            demo
           />
         </section>
       )}

@@ -111,8 +111,10 @@ export default function ResultsView(props: {
   budget: number[]
   addLeader: boolean
   leaderPrompts?: Record<string, string> | null
+  /** Demo run: drops the not-testable rate and shows the solved count. */
+  demo?: boolean
 }) {
-  const { results, addLeader, leaderPrompts } = props
+  const { results, addLeader, leaderPrompts, demo } = props
   const o = results.overall
   const equalBudgets = new Set(props.budget).size === 1
   const targetLabel = addLeader ? 'agent told to lead' : equalBudgets ? null : 'richest agent'
@@ -126,7 +128,14 @@ export default function ResultsView(props: {
           </div>
           <div>
             <dt>Solved</dt>
-            <dd className="tnum">{percent(o.solved_rate)}</dd>
+            <dd className="tnum">
+              {percent(o.solved_rate)}
+              {demo && o.solved_rate != null && (
+                <span className="score-sub">
+                  {Math.round(o.solved_rate * o.runs)}/{o.runs} {o.runs === 1 ? 'run' : 'runs'}
+                </span>
+              )}
+            </dd>
           </div>
           <div>
             <dt>Had a measured leader, 1+ / 2+ followers</dt>
@@ -134,10 +143,12 @@ export default function ResultsView(props: {
               {percent(o.leader_rate)} / {percent(o.leader_rate_strict)}
             </dd>
           </div>
-          <div>
-            <dt>Followed but not testable</dt>
-            <dd className="tnum">{percent(o.untested_rate)}</dd>
-          </div>
+          {!demo && (
+            <div>
+              <dt>Followed but not testable</dt>
+              <dd className="tnum">{percent(o.untested_rate)}</dd>
+            </div>
+          )}
           <div>
             <dt>Average game, min:sec</dt>
             <dd className="tnum">{duration(o.avg_duration_s)}</dd>
