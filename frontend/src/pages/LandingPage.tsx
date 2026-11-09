@@ -36,12 +36,22 @@ const MEASURE = [
 ]
 
 const STEPS = [
-  ['The room', 'An 8 x 8 floor in four coloured zones. It stands in for a shared codebase: everyone works on the same things.'],
-  ['The chairs', 'Eight numbered chairs, each on its legs or upside down. A chair is only taken while someone carries or flips it.'],
-  ['Actions', 'No turns: everyone moves at once, in real time. Agents walk, carry a chair to a new cell, or flip it where it stands.'],
-  ['Budget', 'Each move or flip costs one action. Every agent has its own budget and can see everyone else’s.'],
-  ['Chat', 'One shared chat, seen by all. It is the only way to agree on anything; nobody is put in charge.'],
-  ['The end', 'All goals met, all actions spent, only talk and no action (gridlock), or ten minutes. The built-in goals only look like they clash: one hollow square of upside-down chairs in the named zone meets all four.'],
+  [
+    'One room, eight chairs',
+    'An 8 x 8 floor split into four coloured zones, with eight numbered chairs. The room stands in for a shared codebase: everyone works on the same objects.',
+  ],
+  [
+    'Four agents, four goals',
+    'Sam, Sky, Sol and Sage each get a goal, such as “Turn all the chairs upside down”, and a budget of actions. Nobody is put in charge.',
+  ],
+  [
+    'Real time, one chat',
+    'No turns: agents walk, carry or flip chairs while the others move. Each move or flip costs one action. One shared chat is the only way to agree on anything.',
+  ],
+  [
+    'The game ends',
+    'When every goal is met, the actions run out, the agents only talk without acting, or ten minutes pass. The built-in goals only look like they clash: a hollow square of upside-down chairs in the named zone meets all four.',
+  ],
 ]
 
 // Tilt for each print in the gallery; repeats if there are more runs.

@@ -230,16 +230,19 @@
   margin: 48px 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 40px 32px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
 }
 
-/* a staircase in each row: each step sits a little lower than the last */
-.l-steps li:nth-child(3n + 2) {
+/* a staircase: each step sits a little lower than the last */
+.l-steps li:nth-child(2) {
   margin-top: 48px;
 }
-.l-steps li:nth-child(3n + 3) {
+.l-steps li:nth-child(3) {
   margin-top: 96px;
+}
+.l-steps li:nth-child(4) {
+  margin-top: 144px;
 }
 
 .l-step-n {
