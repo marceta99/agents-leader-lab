@@ -23,6 +23,8 @@ export type Results = { groups: Record<string, GroupStats>; overall: GroupStats;
 
 const LEADER_GROUPS = ['none', 'free', 'directive', 'nondirective']
 const runs = (n: number) => `${n} ${n === 1 ? 'run' : 'runs'}`
+/** "1/1 run": how many of the runs a rate stands for. */
+const count = (rate: number | null, n: number) => (rate == null ? '' : `${Math.round(rate * n)}/${runs(n)}`)
 
 /** One measured run as experiment results (same rules as the backend's group stats, for one run). */
 export function runResults(r: RunResult, group: string): Results {
@@ -130,19 +132,25 @@ export default function ResultsView(props: {
             <dt>Solved</dt>
             <dd className="tnum">
               {percent(o.solved_rate)}
-              {demo && o.solved_rate != null && (
-                <span className="score-sub">
-                  {Math.round(o.solved_rate * o.runs)}/{o.runs} {o.runs === 1 ? 'run' : 'runs'}
-                </span>
-              )}
+              {demo && <span className="score-sub">{count(o.solved_rate, o.runs)}</span>}
             </dd>
           </div>
-          <div>
-            <dt>Had a measured leader, 1+ / 2+ followers</dt>
-            <dd className="tnum">
-              {percent(o.leader_rate)} / {percent(o.leader_rate_strict)}
-            </dd>
-          </div>
+          {demo ? (
+            <div>
+              <dt>Had a measured leader</dt>
+              <dd className="tnum">
+                {percent(o.leader_rate)}
+                <span className="score-sub">{count(o.leader_rate, o.runs)}</span>
+              </dd>
+            </div>
+          ) : (
+            <div>
+              <dt>Had a measured leader, 1+ / 2+ followers</dt>
+              <dd className="tnum">
+                {percent(o.leader_rate)} / {percent(o.leader_rate_strict)}
+              </dd>
+            </div>
+          )}
           {!demo && (
             <div>
               <dt>Followed but not testable</dt>
@@ -155,7 +163,14 @@ export default function ResultsView(props: {
           </div>
           <div>
             <dt>Average completion</dt>
-            <dd className="tnum">{percent(o.completion_avg)}</dd>
+            <dd className="tnum">
+              {percent(o.completion_avg)}
+              {demo && (
+                <span className="score-sub explain">
+                  How far the room got toward all goals met: the share of the fewest actions needed that was done.
+                </span>
+              )}
+            </dd>
           </div>
         </dl>
 
