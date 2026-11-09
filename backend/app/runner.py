@@ -17,6 +17,7 @@ from app.agents import llm
 from app.agents.prompts import LEADER_LINES, system_prompt
 from app.db import SessionLocal
 from app.game.engine import Game, GameConfig
+from app.game.board import GOALS
 from app.game.layouts import make_layout
 from app.game.scripted import scripted_decision
 from app.measure import run as measure
@@ -56,7 +57,10 @@ class _Run:
         # calls and the key's tokens-per-minute limit. Scripted dev runs don't need it.
         self.min_gap_ms = int(s.get("min_call_gap_s", 3) * 1000) if mode == "llm" else 0
         self.seed = run.seed if run.seed is not None else run.layout_no
-        layout = make_layout(run.layout_no, cfg.get("budget", DEV_BUDGET), self.seed)
+        slots = cfg.get("goals")  # None: the 4 built-in goals
+        layout = make_layout(run.layout_no, cfg.get("budget", DEV_BUDGET), self.seed, slots)
+        templates = cfg.get("agent_prompts") or [None] * 4
+        slot_of = {g: i for i, g in enumerate(slots or GOALS)}
         leader = layout.leader if run.group in LEADER_GROUPS else None
         leader_line = ((cfg.get("leader_prompts") or {}).get(run.group) or LEADER_LINES.get(run.group)) if leader else None
         gcfg = GameConfig(
@@ -67,7 +71,8 @@ class _Run:
         self.game = Game(layout, gcfg, group=run.group, seed=self.seed)
         self.systems = {
             name: system_prompt(name, layout.goals[name], layout.budgets[name], gcfg.know_all_goals, layout.goals,
-                                leader_line if name == leader else None, gcfg, layout.zone)
+                                leader_line if name == leader else None, gcfg, layout.zone,
+                                templates[slot_of[layout.goals[name]]])
             for name, _ in layout.agents
         } if mode == "llm" else {}
         self.client = llm.make_client(key) if key else None

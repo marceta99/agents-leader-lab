@@ -172,3 +172,19 @@ async def test_stop_while_paused(auth_client, monkeypatch):
     assert (await auth_client.post(f"/api/experiments/{exp_id}/stop")).status_code == 204
     exp, runs = await state(exp_id)
     assert exp.status == "stopped" and [r.status for r in runs] == ["stopped", "stopped"]
+
+
+async def test_custom_goals_and_prompts(auth_client, monkeypatch):
+    monkeypatch.setattr(scheduler, "launch", lambda exp_id: None)
+    await add_key()
+    goals = ["square", "upside_down", "one_zone", "Keep chair 1 where it is."]
+    for bad in ({"goals": goals[:3]}, {"goals": ["square", "square", "one_zone", "touching"]},
+                {"goals": [*goals[:3], "ab"]}, {"agent_prompts": [None] * 3}, {"agent_prompts": ["x" * 2001, None, None, None]}):
+        assert (await auth_client.post("/api/experiments", json={**BODY, **bad})).status_code == 422, bad
+    d = (await auth_client.post("/api/experiments", json={**BODY, "goals": goals,
+                                                           "agent_prompts": [" ", "You are {name}. {goal}", None, None]})).json()
+    assert d["config"]["goals"] == goals and d["config"]["agent_prompts"] == [None, "You are {name}. {goal}", None, None]
+    assert d["name"].endswith("· Custom goals and prompts")
+    d = (await auth_client.post("/api/experiments", json={**BODY, "goals": ["square", "upside_down", "one_zone", "touching"],
+                                                           "agent_prompts": [None] * 4})).json()
+    assert d["config"]["goals"] is None and d["config"]["agent_prompts"] is None and "Custom" not in d["name"]

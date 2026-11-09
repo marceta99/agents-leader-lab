@@ -7,6 +7,8 @@ export type Style = 'directive' | 'non_directive' | 'other'
 export type AgentMode = 'idle' | 'walking' | 'carrying' | 'flipping'
 
 export const GOAL_IDS: GoalId[] = ['square', 'upside_down', 'one_zone', 'touching']
+/** Anything else an agent has as its goal is custom text the experimenter wrote; the game cannot check it. */
+export const isGoalId = (g: string): g is GoalId => (GOAL_IDS as string[]).includes(g)
 export const GOAL_TEXT: Record<GoalId, string> = {
   square: 'Arrange the chairs in a square.',
   upside_down: 'Turn all the chairs upside down.',
@@ -16,7 +18,9 @@ export const GOAL_TEXT: Record<GoalId, string> = {
 const ZONE_NAMES = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 /** Goal text as the agent read it: one_zone names the run's target zone (older runs: any zone). */
 export const goalText = (g: GoalId, zone?: number | null) =>
-  g === 'one_zone' && zone != null ? `Move all the chairs to zone ${zone} (the ${ZONE_NAMES[zone]} part of the room).` : GOAL_TEXT[g]
+  g === 'one_zone' && zone != null
+    ? `Move all the chairs to zone ${zone} (the ${ZONE_NAMES[zone]} part of the room).`
+    : (GOAL_TEXT[g] ?? (g as string))
 export const GOAL_SHORT: Record<GoalId, string> = {
   square: 'Square',
   upside_down: 'Upside down',
@@ -174,6 +178,8 @@ export interface RunSetup {
   runs: number | null
   model: string
   leader_prompts: Record<string, string> | null
+  goals?: string[] | null // per agent slot: built-in id or custom text; null = the 4 built-in
+  agent_prompts?: (string | null)[] | null // per agent slot; null = default
 }
 
 // ---- board state produced by the reducer ----

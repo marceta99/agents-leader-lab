@@ -20,6 +20,7 @@ import { ChanceBar, Meter, StyleMix, type StyleMixData } from '../ui/Charts'
 import ConfirmButton from '../ui/ConfirmButton'
 import { AgentName, BackLink, StatusBadge } from '../ui/Labels'
 import './pages.css'
+import { GOAL_IDS, type GoalId } from '../run/types'
 
 type Config = {
   know_all_goals: boolean
@@ -28,6 +29,8 @@ type Config = {
   runs: number
   model: string
   leader_prompts?: Record<string, string> | null
+  goals?: string[] | null
+  agent_prompts?: (string | null)[] | null
   cap_usd: number
   settings?: Record<string, unknown>
 }
@@ -629,6 +632,13 @@ function Experiment() {
           <div>
             <dt>Goals</dt>
             <dd>{c.know_all_goals ? 'Everyone knows all' : 'Each knows its own'}</dd>
+          </div>
+          <div>
+            <dt>Agent goals and prompts</dt>
+            <dd>
+              {c.goals ? `${c.goals.filter((g) => !GOAL_IDS.includes(g as GoalId)).length} custom goals` : 'Built-in goals'},{' '}
+              {c.agent_prompts?.some(Boolean) ? `${c.agent_prompts.filter(Boolean).length} custom prompts` : 'default prompts'}
+            </dd>
           </div>
           <div>
             <dt>Budget, rotated across goals</dt>

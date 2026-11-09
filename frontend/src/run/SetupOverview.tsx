@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { GROUP_LABELS, LEADER_STYLES, MODELS, leaderText } from '../format'
-import type { RunInfo, RunSetup } from './types'
+import { goalLabel } from '../pages/AgentsSection'
+import { useDefaultPrompts } from '../prompts'
+import { GOAL_IDS, isGoalId, type AgentState, type RunInfo, type RunSetup } from './types'
 
 /** One setting: every option the experiment form offered, the chosen one marked. */
 function Row(props: { label: string; options: string[]; chosen: string; note?: string | null }) {
@@ -23,7 +26,15 @@ function Row(props: { label: string; options: string[]; chosen: string; note?: s
 }
 
 /** How the run's experiment was set up, so a visitor sees the choices behind the replay. */
-export default function SetupOverview({ setup, run }: { setup: RunSetup; run: RunInfo }) {
+export default function SetupOverview({ setup, run, agents }: { setup: RunSetup; run: RunInfo; agents: AgentState[] }) {
+  const [promptsOpen, setPromptsOpen] = useState(false)
+  const defaults = useDefaultPrompts(promptsOpen)
+  const goals = setup.goals ?? GOAL_IDS
+  const prompts = setup.agent_prompts ?? goals.map(() => null)
+  const nCustomGoals = goals.filter((g) => !isGoalId(g)).length
+  const nCustomPrompts = prompts.filter(Boolean).length
+  const nameOf = (g: string) => agents.find((a) => a.goal === g)?.name
+  const slot = (i: number) => `Agent ${i + 1}${nameOf(goals[i]) ? ` · ${nameOf(goals[i])} in this run` : ''}`
   const budget = setup.budget ?? []
   const equal = new Set(budget).size <= 1
   const rich = run.result?.richest_agent
@@ -40,7 +51,53 @@ export default function SetupOverview({ setup, run }: { setup: RunSetup; run: Ru
       </div>
       <dl className="su-rows">
         <Row
-          label="Goals"
+          label="Agents"
+          options={['1', '2', '3', '4', '5', '6', '7', '8']}
+          chosen="4"
+          note="Teams of 1 to 8 agents are coming in a future release."
+        />
+        <div className="su-row">
+          <dt>Goals</dt>
+          <dd>
+            <details className="su-drop">
+              <summary>{nCustomGoals ? `${nCustomGoals} custom, ${4 - nCustomGoals} built-in` : 'The 4 built-in goals'}</summary>
+              <ol className="su-list">
+                {goals.map((g, i) => (
+                  <li key={i}>
+                    <span className="su-slot">{slot(i)}</span>
+                    {goalLabel(g)}
+                    {!isGoalId(g) && <span className="su-tag">Custom goal</span>}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </dd>
+        </div>
+        <div className="su-row">
+          <dt>Prompts</dt>
+          <dd>
+            <details className="su-drop" onToggle={(e) => setPromptsOpen((e.target as HTMLDetailsElement).open)}>
+              <summary>{nCustomPrompts ? `${nCustomPrompts} custom agent ${nCustomPrompts === 1 ? 'prompt' : 'prompts'}` : 'Default agent prompts'}</summary>
+              <ol className="su-list">
+                {prompts.map((p, i) => (
+                  <li key={i}>
+                    <span className="su-slot">
+                      {slot(i)}
+                      <span className="su-tag">{p ? 'Custom prompt' : 'Default prompt'}</span>
+                    </span>
+                    <pre className="su-pre">{p ?? defaults?.agent_prompt ?? 'Loading…'}</pre>
+                  </li>
+                ))}
+                <li>
+                  <span className="su-slot">Rules (system prompt), the same for every agent</span>
+                  <pre className="su-pre">{defaults?.rules ?? 'Loading…'}</pre>
+                </li>
+              </ol>
+            </details>
+          </dd>
+        </div>
+        <Row
+          label="What they know"
           options={['Each knows only its own', 'Everyone knows all goals']}
           chosen={setup.know_all_goals ? 'Everyone knows all goals' : 'Each knows only its own'}
         />

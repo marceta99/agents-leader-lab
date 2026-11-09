@@ -55,7 +55,9 @@ def render_state(observation: dict, triggers: list[str], notes: str | None) -> s
     lines.append(f"- State: {you['state']}. Holding: {_holding(you.get('holding'))}.")
     lines.append(f"- Current action: {_heading(you.get('heading'))}.")
     lines.append(f"- Actions left: {you['budget_left']}.")
-    lines.append(f"- Your goal: {goal_text(you['goal'], zone_no)} Currently met: {'yes' if you.get('goal_met') else 'no'}.")
+    met = you.get("goal_met")
+    lines.append(f"- Your goal: {goal_text(you['goal'], zone_no)}"
+                 + ("" if met is None else f" Currently met: {'yes' if met else 'no'}."))  # None: a custom goal
     lines.append("")
     lines += _map(chairs)
     lines.append("")

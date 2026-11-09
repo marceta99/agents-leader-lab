@@ -16,7 +16,7 @@ class Layout:
     n: int
     chairs: list  # [(id, (x, y))]
     agents: list  # [(name, (x, y))], in the run's shuffled order (the order agents are listed in prompts)
-    goals: dict  # name -> goal id
+    goals: dict  # name -> goal id (built-in) or custom goal text
     budgets: dict  # name -> int
     leader: str
     min_actions: int
@@ -44,26 +44,28 @@ def rich_agent(n: int, budgets: list[int], seed: int) -> str | None:
     return _shuffle(seed)[0][GOALS.index(roles(n)[1])]
 
 
-def make_layout(n: int, budgets: list[int], seed: int = 0) -> Layout:
+def make_layout(n: int, budgets: list[int], seed: int = 0, goals: list[str] | None = None) -> Layout:
+    """goals: the experiment's goal for each of the 4 agent slots (default GOALS). Roles rotate over slots."""
+    slots = list(goals or GOALS)
     # Separate string sub-seeds (deterministic across processes) so each part is independent.
     zone = random.Random(f"layout-{n}-zone").randrange(4)
     rng = random.Random(f"layout-{n}-cells")
     while True:
         chair_cells = rng.sample(_CELLS, 8)
-        start_cells = [rng.choice(_CELLS) for _ in GOALS]  # one per goal, in GOALS order
+        start_cells = [rng.choice(_CELLS) for _ in GOALS]  # one per slot
         actions = _min_actions(chair_cells, zone)
         if 14 <= actions <= 16:
             break
-    leader_goal, rich_goal = roles(n)
+    leader_goal, rich_goal = roles(n)  # slot i is GOALS[i] by default, so the rotation is over slots
     ranked = sorted(budgets, reverse=True)
     r = GOALS.index(rich_goal)
-    budget_by_goal = {GOALS[(r + k) % 4]: ranked[k] for k in range(4)}
+    budget_of_slot = {(r + k) % 4: ranked[k] for k in range(4)}
     # Per run: which name plays which goal, and the order everyone is listed in.
     names, order = _shuffle(seed)
-    goal_of = dict(zip(names, GOALS))
+    slot_of = {name: i for i, name in enumerate(names)}
     agents = [(names[i], start_cells[i]) for i in order]
     return Layout(
         n, [(i + 1, cell) for i, cell in enumerate(chair_cells)], agents,
-        {name: goal_of[name] for name, _ in agents}, {name: budget_by_goal[goal_of[name]] for name, _ in agents},
+        {name: slots[slot_of[name]] for name, _ in agents}, {name: budget_of_slot[slot_of[name]] for name, _ in agents},
         names[GOALS.index(leader_goal)], actions, zone,
     )

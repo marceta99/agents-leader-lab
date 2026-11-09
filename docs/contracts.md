@@ -242,10 +242,13 @@ Results measured with version 1 (before 2026-11-08) have one instruction per mes
 {"name": "Goals hidden · Equal budget 6 · No leader", "know_all_goals": false, "budget": [6, 6, 6, 6],
  "add_leader": false, "runs": 10, "model": "claude-haiku-5-5", "cap_usd": 5.0,
  "leader_prompts": null,          // with a leader: {"directive": "...", "nondirective": "..."}
+ "goals": null,                   // or 4 entries, one per agent slot: a built-in goal id or custom text (3-300 chars), all different
+ "agent_prompts": null,           // or 4 entries: null = default, else a template with {name}, {goal}, {others} (max 2000)
  "settings": {...global snapshot...}, "layout_version": 2}
 ```
 
-- **Name:** generated from the config (goals known/hidden, budget, leader groups); there is no name field.
+- **Name:** generated from the config (goals known/hidden, budget, leader groups, "· Custom goals and prompts" when set); there is no name field.
+- **Agent slots.** Slot i plays `goals[i]` (default `GOALS[i]`) with `agent_prompts[i]`; the leader and the largest budget rotate over slots per layout, names are shuffled per run. A custom goal is shown to the agent as written and is never checked: such a run cannot end `solved`, and `completion` is `null`. The system prompt is the agent prompt, then the rules (`rules()` in `agents/prompts.py`), then the leader line.
 - **Leader prompts:** only with a leader. Missing or blank groups get the default; each at most 1000 characters.
 - **Validation:** budget has 4 ints in `0..budget_max_per_agent` with sum `>= budget_min_total`; runs at least 1 (`max_runs`, default 1000, is only a typo guard); model in `settings.models`; cap > 0.
 - **Rows:** all `runs` rows are created at launch. For each layout `i` in `1..runs`:
@@ -273,7 +276,7 @@ All paths are same-origin. Auth is an httpOnly cookie `session` (a JWT). Errors 
 | Endpoint | Request | Response |
 |---|---|---|
 | `POST /api/experiments/estimate` | config fields without `leader_prompts` | `{runs_total, calls_estimate, usd_estimate}` |
-| `POST /api/experiments` | `{know_all_goals, budget, add_leader, runs, model, cap_usd, leader_prompts?}` | `ExperimentDetail`. 400 if there is no key. |
+| `POST /api/experiments` | `{know_all_goals, budget, add_leader, runs, model, cap_usd, leader_prompts?, goals?, agent_prompts?}` | `ExperimentDetail`. 400 if there is no key. |
 | `GET /api/experiments` | | `[ExperimentSummary]`, newest first |
 | `GET /api/experiments/{id}` | | `ExperimentDetail` |
 | `POST /api/experiments/{id}/pause` | | 204. Runs already playing finish (with measurement); no new run starts; status `paused`. |
@@ -303,7 +306,7 @@ Response shapes:
 
 | Endpoint | Response | Access |
 |---|---|---|
-| `GET /api/runs/{id}` | `{id, experiment_id, experiment_name, group, layout_no, status, end_reason, cost_usd, result, share_token, is_owner, setup}` | owner, or a run of a demo experiment. `setup` is the experiment's choices `{know_all_goals, budget, add_leader, runs, model, leader_prompts}`, no settings and no user data |
+| `GET /api/runs/{id}` | `{id, experiment_id, experiment_name, group, layout_no, status, end_reason, cost_usd, result, share_token, is_owner, setup}` | owner, or a run of a demo experiment. `setup` is the experiment's choices `{know_all_goals, budget, add_leader, runs, model, leader_prompts, goals, agent_prompts}`, no settings and no user data |
 | `GET /api/runs/{id}/events` | `[event]` | same as above |
 | `POST /api/runs/{id}/share` | `{token}` | owner |
 | `DELETE /api/runs/{id}/share` | 204 | owner |
@@ -319,6 +322,7 @@ The WebSocket sends every stored event with `seq > after`, then live events as t
 | `GET /api/public/runs/{token}` | Same shape as `GET /api/runs/{id}`, with `is_owner: false` and no `share_token`. |
 | `GET /api/public/runs/{token}/events` | `[event]` |
 | `GET /api/public/demos` | `[{experiment: ExperimentSummary (no user info), runs: [RunSummary]}]` |
+| `GET /api/public/prompts` | `{agent_prompt, goals: {id: text}, rules}`: the default agent prompt template, the built-in goals and the rules with the current settings (`{budget}` left as a placeholder). |
 | `GET /api/public/demo-run?exclude=<run id>` | `{run_id}`: a random finished, measured run of a demo experiment, not `exclude` when another exists. 404 when there is none. The landing page's Watch a demo run plays it on `/demo`. |
 
 **Admin** (`is_admin`; 403 otherwise)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AgentState, GoalId, GoalsMet } from './types'
-import { AGENT_COLORS, goalText } from './types'
+import { AGENT_COLORS, goalText, isGoalId } from './types'
 
 const STYLE_TEXT = { free: 'its own way', directive: 'giving instructions', nondirective: 'asking and proposing' } as const
 
@@ -38,12 +38,19 @@ export default function AgentPanel(props: { agents: AgentState[]; goalsMet: Goal
                 )}
                 <span className="rv-agent-doing">{doing(a)}</span>
               </div>
-              {goals.map((g) => (
-                <div key={g} className={goalsMet[g] ? 'rv-goal met' : 'rv-goal'}>
-                  <span aria-hidden="true">{goalsMet[g] ? '✓' : '○'}</span> {goalText(g, zone) ?? g}
-                  {goalsMet[g] && <span className="rv-sr"> (met)</span>}
-                </div>
-              ))}
+              {goals.map((g) =>
+                isGoalId(g) ? (
+                  <div key={g} className={goalsMet[g] ? 'rv-goal met' : 'rv-goal'}>
+                    <span aria-hidden="true">{goalsMet[g] ? '✓' : '○'}</span> {goalText(g, zone)}
+                    {goalsMet[g] && <span className="rv-sr"> (met)</span>}
+                  </div>
+                ) : (
+                  <div key={g} className="rv-goal custom" title="A custom goal: the game does not check it">
+                    <span aria-hidden="true">◇</span> {g}
+                    <span className="rv-sr"> (custom goal, not checked by the game)</span>
+                  </div>
+                ),
+              )}
               <div className="rv-budget">
                 <span>
                   Actions left <b className="tnum">{a.budget}</b>

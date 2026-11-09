@@ -60,10 +60,18 @@ export const leaderText = (g: string, prompts?: Record<string, string> | null) =
   g === 'none' ? 'Nothing. A normal game, for comparison.' : `"${prompts?.[g] ?? LEADER_DEFAULTS[g] ?? ''}"`
 
 /** Experiment name built from its settings (same rule as the backend's experiment_name). */
-export function experimentName(c: { know_all_goals: boolean; budget: number[]; add_leader: boolean }) {
+export function experimentName(c: {
+  know_all_goals: boolean
+  budget: number[]
+  add_leader: boolean
+  goals?: string[] | null
+  agent_prompts?: (string | null)[] | null
+}) {
   const b = c.budget
   const budget = new Set(b).size === 1 ? `Equal budget ${b[0]}` : `Budget ${[...b].sort((x, y) => y - x).join('-')}`
-  return `${c.know_all_goals ? 'Goals known' : 'Goals hidden'} · ${budget} · ${c.add_leader ? 'Directive vs non-directive leader' : 'No leader'}`
+  const name = `${c.know_all_goals ? 'Goals known' : 'Goals hidden'} · ${budget} · ${c.add_leader ? 'Directive vs non-directive leader' : 'No leader'}`
+  const custom = [c.goals ? 'goals' : '', c.agent_prompts?.some((p) => p?.trim()) ? 'prompts' : ''].filter(Boolean)
+  return custom.length ? `${name} · Custom ${custom.join(' and ')}` : name
 }
 
 const STATUS_LABELS: Record<string, string> = {

@@ -113,7 +113,7 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
   return (
     <section className="l-hero" ref={section} aria-labelledby="hero-title">
       <h1 id="hero-title" className="hero-title">
-        When do agents organise?
+        Who leads a flat team?
       </h1>
       <div className="hero-room" role="img" aria-label="A live 3D room: four agents walk between coloured zones, carrying and flipping eight chairs.">
         <Suspense fallback={<RoomFallback />}>
@@ -122,8 +122,8 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
       </div>
       <div className="hero-copy">
         <p>
-          Four AI agents, each with its own goal, share one workspace and nobody is put in charge. We watch whether one
-          of them starts directing the others, and measure whose messages the others actually follow.
+          A sandbox for research teams. Give AI agents their own goals in one shared room, put nobody in charge, change
+          one condition at a time, and measure whose messages the others actually follow.
         </p>
         <div className="hero-cta">
           <Link
@@ -133,9 +133,16 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
           >
             {props.loggedIn ? 'Go to experiments' : 'Start an experiment'}
           </Link>
-          <Link to="/demo" className="button big">
+          <a
+            href="#demo"
+            className="button big"
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById('demo')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
+            }}
+          >
             Watch a demo run
-          </Link>
+          </a>
         </div>
       </div>
       {wipe && !wipeDone && <div className="hero-wipe" aria-hidden="true" onAnimationEnd={() => setWipeDone(true)} />}

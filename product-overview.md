@@ -233,10 +233,16 @@ Because every experiment plays on the same numbered layouts, **any two experimen
 | Add a leader | On / Off | **Off** |
 | Runs | Any number, 1 or more (per group when a leader is added) | none |
 | Leader prompts | The text each leader group is told | The defaults in section 3 |
+| Number of agents | 1 to 8 shown; only 4 available now ("Coming soon") | **4** |
+| Goals | Per agent: one of the four built-in goals, or a custom goal in your own words. Each agent needs a different goal | The four built-in goals |
+| Agent prompts | Per agent: edit only the goal, or the whole agent prompt (a template with {name}, {goal} and {others}, filled in per run) | The default prompt |
+| Rules (system prompt) | Can be viewed; editing is "Coming soon" | |
 | Model | Claude Haiku / Sonnet / Opus | **Haiku** |
 | Spending cap | Dollar amount | **$5** |
 
 **"Agents know all goals"** is the comparison setting. To show that leaders appear *because* nobody knows everything, you need games where everyone does. If leaders appear just as often there, hidden goals are not the reason.
+
+**Custom goals** are given to the agent as written, but the game cannot check them. A run with a custom goal never ends as solved and has no completion %; it ends on time, spent budgets or gridlock.
 
 Fixed for users, adjustable by admins: how much the model thinks before answering ("effort", default low), walking speed, the 10-minute and 30-question limits, budget limits, maximum runs and the list of available models. Every experiment records the values it ran with.
 
@@ -264,7 +270,8 @@ Fixed for users, adjustable by admins: how much the model thinks before answerin
 
 ### 6.1 Landing page (no account needed)
 
-- A short explanation of the research question: when do AI agents organise, and who leads?
+- Positioned as a sandbox for research teams: what an experiment can vary, how influence is measured, the Chair Game in four steps, then the original study as an example.
+- **Watch a demo run** (hero button) scrolls to a demo run played in place: a random measured run from the demo experiments, with the experiment's setup on top (agents, goals and prompts as dropdowns, knowledge, budget, leader, model). The measurements appear when the replay ends.
 - A **demo gallery** of experiments the team has run and picked. Visitors can open any demo run and watch it in full in the 3D room, with chat and results, without an account or API key.
 - Buttons: **Sign up** and **Log in**.
 

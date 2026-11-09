@@ -11,11 +11,12 @@ def goal_text(goal: str, zone: int | None = None) -> str:
         if zone is None:
             return "Move all the chairs to one part of the room (one zone)."
         return f"Move all the chairs to zone {zone} (the {ZONE_NAMES[zone]} part of the room)."
+    # Anything that is not a built-in goal id is a custom goal: its text is used as written.
     return {
         "square": "Arrange the chairs in a square.",
         "upside_down": "Turn all the chairs upside down.",
         "touching": "Make all the chairs touch each other.",
-    }[goal]
+    }.get(goal, goal)
 
 
 def zone(cell) -> int:

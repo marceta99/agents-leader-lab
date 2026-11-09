@@ -8,7 +8,7 @@ import Room3D from './Room3D'
 import './run.css'
 import SetupOverview from './SetupOverview'
 import Timeline from './Timeline'
-import { GOAL_IDS, GOAL_SHORT } from './types'
+import { GOAL_IDS, GOAL_SHORT, isGoalId } from './types'
 import { usePlayback } from './usePlayback'
 import { isLiveStatus, useRunEvents } from './useRunEvents'
 
@@ -32,11 +32,14 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
   const result = !props.demo || state.ended ? run.result : null
   const leader = result?.measured_leader ?? null
   const title = props.fixture ? 'Demo run' : (run.experiment_name ?? `Run ${run.id}`)
+  const agentGoals = state.agents.flatMap((a) => (Array.isArray(a.goal) ? a.goal : [a.goal]) as string[])
+  const builtinGoals = agentGoals.length ? GOAL_IDS.filter((g) => agentGoals.includes(g)) : GOAL_IDS
+  const customGoals = agentGoals.filter((g) => !isGoalId(g))
   const back = props.demo || props.shareToken ? null : run.is_owner && run.experiment_id ? `/experiments/${run.experiment_id}` : '/'
   return (
     <div className="rv">
       {back && <BackLink to={back}>{back === '/' ? 'Home' : 'Back to the experiment'}</BackLink>}
-      {props.demo && run.setup && <SetupOverview setup={run.setup} run={run} />}
+      {props.demo && run.setup && <SetupOverview setup={run.setup} run={run} agents={state.agents} />}
       <header className="rv-head">
         <div className="rv-title">
           <h1>{title}</h1>
@@ -97,10 +100,16 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
           )}
         </dl>
         <ul className="rv-goals" aria-label="Goals">
-          {GOAL_IDS.map((g) => (
+          {builtinGoals.map((g) => (
             <li key={g} className={state.goalsMet[g] ? 'met' : undefined}>
               <span aria-hidden="true">{state.goalsMet[g] ? '✓' : '○'}</span> {g === 'one_zone' && start?.target_zone != null ? `Zone ${start.target_zone}` : GOAL_SHORT[g]}
               <span className="rv-sr">{state.goalsMet[g] ? ' (met)' : ' (not met)'}</span>
+            </li>
+          ))}
+          {customGoals.map((g) => (
+            <li key={g} className="custom" title={`Custom goal, not checked by the game: ${g}`}>
+              <span aria-hidden="true">◇</span> {g.length > 32 ? `${g.slice(0, 30)}…` : g}
+              <span className="rv-sr"> (custom goal, not checked by the game)</span>
             </li>
           ))}
         </ul>

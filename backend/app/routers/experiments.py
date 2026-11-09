@@ -10,7 +10,8 @@ from app import scheduler
 from app.db import get_db
 from app.deps import current_user
 from app.estimate import estimate
-from app.agents.prompts import LEADER_LINES
+from app.agents.prompts import LEADER_LINES, MAX_AGENT_PROMPT
+from app.game.board import GOALS
 from app.game.layouts import LAYOUT_VERSION
 from app.models import ApiKey, Decision, Experiment, Run, RunEvent, User
 from app.pricing import PRICES
@@ -35,13 +36,45 @@ class ConfigIn(BaseModel):
 
 class ExperimentIn(ConfigIn):
     leader_prompts: dict[str, str] | None = None  # free / directive / nondirective -> text; missing = default
+    goals: list[str] | None = None  # per agent slot: a built-in goal id or custom text; None = the 4 built-in
+    agent_prompts: list[str | None] | None = None  # per agent slot; None or blank = the default agent prompt
+
+
+MAX_GOAL = 300
+
+
+def _goals(body: ExperimentIn) -> list[str] | None:
+    if body.goals is None:
+        return None
+    goals = [g.strip() for g in body.goals]
+    if len(goals) != 4:
+        raise HTTPException(422, "Give one goal for each of the 4 agents")
+    if any(g not in GOALS and not 3 <= len(g) <= MAX_GOAL for g in goals):
+        raise HTTPException(422, f"A custom goal must be 3 to {MAX_GOAL} characters")
+    if len({g.lower() for g in goals}) < 4:
+        raise HTTPException(422, "Each agent needs a different goal")
+    return None if goals == GOALS else goals
+
+
+def _agent_prompts(body: ExperimentIn) -> list[str | None] | None:
+    if body.agent_prompts is None:
+        return None
+    if len(body.agent_prompts) != 4:
+        raise HTTPException(422, "Give one agent prompt (or null) for each of the 4 agents")
+    out = [(p or "").strip() or None for p in body.agent_prompts]
+    if any(p and len(p) > MAX_AGENT_PROMPT for p in out):
+        raise HTTPException(422, f"Each agent prompt must be at most {MAX_AGENT_PROMPT} characters")
+    return out if any(out) else None
 
 
 def experiment_name(c: ConfigIn) -> str:
     b = c.budget
     budget = f"Equal budget {b[0]}" if len(set(b)) == 1 else "Budget " + "-".join(str(v) for v in sorted(b, reverse=True))
     goals = "Goals known" if c.know_all_goals else "Goals hidden"
-    return f"{goals} · {budget} · {'Directive vs non-directive leader' if c.add_leader else 'No leader'}"
+    name = f"{goals} · {budget} · {'Directive vs non-directive leader' if c.add_leader else 'No leader'}"
+    custom = [w for w, on in (("goals", getattr(c, "goals", None) not in (None, GOALS)),
+                              ("prompts", any(getattr(c, "agent_prompts", None) or []))) if on]
+    return name + (f" · Custom {' and '.join(custom)}" if custom else "")
 
 
 def _leader_prompts(body: ExperimentIn) -> dict[str, str] | None:
@@ -110,8 +143,8 @@ async def create_experiment(body: ExperimentIn, user: User = Depends(current_use
     name = experiment_name(body)
     if await db.get(ApiKey, user.id) is None:
         raise HTTPException(400, "Add your Anthropic API key first")
-    config = {**body.model_dump(), "leader_prompts": _leader_prompts(body), "name": name, "settings": s,
-              "layout_version": LAYOUT_VERSION}
+    config = {**body.model_dump(), "leader_prompts": _leader_prompts(body), "goals": _goals(body),
+              "agent_prompts": _agent_prompts(body), "name": name, "settings": s, "layout_version": LAYOUT_VERSION}
     exp = Experiment(user_id=user.id, name=name, config=config, status="queued", cap_usd=body.cap_usd)
     db.add(exp)
     await db.flush()

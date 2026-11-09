@@ -166,3 +166,14 @@ def test_message_truncated_to_300():
     assert Decision(action="wait").message is None
     with pytest.raises(pydantic.ValidationError):
         Decision(action="dance")
+
+
+def test_custom_agent_prompt_and_goal():
+    assert prompt(template="You are {name}. Goal: {goal} {others}").startswith(
+        "You are Sky. Goal: Turn all the chairs upside down. You do not know what their goals are.\n\nTHE ROOM")
+    assert prompt(template="{name} {nope} {}").startswith("Sky {nope} {}")  # other braces left alone
+    assert prompt(goal="Stack the chairs by the door.").startswith(
+        "You are Sky. You are in a room with 8 chairs and three other people. Your goal: Stack the chairs by the door.")
+    o = obs()
+    o["you"].update(goal="Stack the chairs by the door.", goal_met=None)
+    assert "- Your goal: Stack the chairs by the door.\n" in render_state(o, [], "")

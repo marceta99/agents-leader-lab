@@ -327,3 +327,22 @@ async def test_custom_leader_prompt_reaches_only_the_leader(auth_client, monkeyp
     assert len(with_custom) == 1 and with_custom.pop().endswith(custom)  # one leader, one run (directive)
     assert sum(LEADER_LINES["nondirective"] in p for p in set(systems)) == 1 and leader
     assert not any(LEADER_LINES["free"] in p for p in systems)  # no free-leader group any more
+
+
+async def test_custom_goals_and_prompts_reach_their_slots(auth_client, monkeypatch):
+    systems: dict[str, str] = {}
+
+    def behave(agent, kw):
+        systems[agent] = str(kw["system"])
+        return Decision(action="wait")
+    use_client(monkeypatch, behave)
+    await add_key()
+    goals = ["square", "upside_down", "one_zone", "Keep chair 1 where it is."]
+    prompts = [None, "You are {name}. Wants: {goal} | {others}", None, None]
+    exp, (run,) = await wait_exp(await create(auth_client, goals=goals, agent_prompts=prompts))
+    started = next(e.data for e in await events(run.id) if e.type == "run_started")
+    name_of = {a["goal"]: a["name"] for a in started["agents"]}
+    sky = name_of["upside_down"]  # slot 2 has the custom prompt
+    assert systems[sky].startswith(f"You are {sky}. Wants: Turn all the chairs upside down. | You do not know")
+    assert f"Your goal: {goals[3]}" in systems[name_of[goals[3]]]
+    assert run.status == "finished" and not run.result["solved"] and run.result["completion"] is None

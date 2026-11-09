@@ -261,3 +261,16 @@ def test_gridlock_when_everyone_only_talks():
     for _ in range(5):
         g.say("Sam", "talk")
     assert g.ended == "gridlock" and g.events[-1]["data"]["reason"] == "gridlock"
+
+
+def test_custom_goal_is_never_solved_and_has_no_completion():
+    goals = ["square", "upside_down", "one_zone", "Keep chair 1 where it is."]
+    lay = make_layout(1, [5, 5, 5, 5], seed=4, goals=goals)
+    assert sorted(lay.goals.values()) == sorted(goals)
+    assert lay.budgets == make_layout(1, [5, 5, 5, 5], seed=4).budgets  # same slots, same rotation
+    g = Game(lay, GameConfig(), seed=1)
+    custom = next(n for n, goal in lay.goals.items() if goal == goals[3])
+    g.start()
+    assert g.observation(custom)["you"]["goal_met"] is None
+    play_bots(g)
+    assert g.ended != "solved" and g.events[-1]["data"]["completion"] is None

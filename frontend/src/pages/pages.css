@@ -1843,3 +1843,179 @@ table.runs tr.layout-start td {
     padding: 20px;
   }
 }
+
+/* ---- new experiment: agents, goals and prompts ---- */
+.agent-count {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.agent-count legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.count-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.count {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  font-weight: 600;
+}
+.count input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.count.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.count.soon {
+  border-style: dashed;
+  color: var(--ink-2);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.agent-count .chip,
+.note .chip {
+  margin-right: 6px;
+}
+.agent-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.agent-row {
+  border-radius: 12px;
+  background: var(--paper);
+  padding: 12px 14px;
+}
+.agent-row-head {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-areas: 'slot goal actions' 'slot tags actions';
+  gap: 2px 12px;
+  align-items: center;
+}
+.agent-slot {
+  grid-area: slot;
+  font-weight: 700;
+  align-self: start;
+  padding-top: 2px;
+}
+.agent-goal {
+  grid-area: goal;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agent-tags {
+  grid-area: tags;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.agent-tags:empty {
+  display: none;
+}
+.agent-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.chip.warn {
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  border-color: transparent;
+}
+.agent-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.agent-edit-what {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.agent-edit textarea,
+.agent-edit select {
+  width: 100%;
+  font-size: 14px;
+}
+.agent-edit button.compact {
+  align-self: flex-start;
+}
+.prompt-view {
+  margin: 0;
+  padding: 12px 14px;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.prompt-view.tall {
+  max-height: 420px;
+}
+.note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--tint-ink);
+  font-size: 14px;
+}
+.note.warn {
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+}
+.rules-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--line-strong);
+}
+.rules-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+@media (max-width: 560px) {
+  .agent-row-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'slot' 'goal' 'tags' 'actions';
+  }
+  .agent-actions {
+    justify-content: flex-start;
+    margin-top: 6px;
+  }
+}

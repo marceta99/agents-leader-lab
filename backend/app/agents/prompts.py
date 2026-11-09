@@ -24,24 +24,43 @@ def _fmt_s(ms) -> str:
     return f"{s:g} seconds"
 
 
-def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_line, cfg, zone=None) -> str:
-    """others_goals: {name: goal} in the order the others are listed. leader_line: text for the leader, else None."""
+# The part of the system prompt that is about this one agent. An experiment can replace it per agent slot
+# (config["agent_prompts"]); {name}, {goal} and {others} are filled in for each run.
+AGENT_PROMPT = (
+    "You are {name}. You are in a room with 8 chairs and three other people. Your goal: {goal}\n"
+    "Each of the other three has a goal of their own for the chairs. {others}"
+)
+MAX_AGENT_PROMPT = 2000
+
+
+def agent_part(agent, goal, know_all_goals, others_goals, zone=None, template=None) -> str:
+    """others_goals: {name: goal} in the order the others are listed."""
+    if know_all_goals and others_goals:
+        others = "Their goals are:\n" + "\n".join(
+            f"- {name}: {goal_text(g, zone)}" for name, g in others_goals.items() if name != agent
+        )
+    else:
+        others = "You do not know what their goals are."
+    # Plain replace, not str.format: a custom prompt may contain other braces.
+    return (template or AGENT_PROMPT).replace("{name}", agent).replace("{goal}", goal_text(goal, zone)).replace(
+        "{others}", others)
+
+
+def system_prompt(agent, goal, budget, know_all_goals, others_goals, leader_line, cfg, zone=None, template=None) -> str:
+    """leader_line: text for the leader, else None. template: the experiment's agent prompt for this slot."""
+    who = agent_part(agent, goal, know_all_goals, others_goals, zone, template)
+    prompt = who + "\n\n" + rules(budget, cfg)
+    if leader_line:
+        prompt += "\n\n" + leader_line
+    return prompt
+
+
+def rules(budget, cfg) -> str:
+    """The game rules, the same for every agent except the budget."""
     cell_s = _fmt_s(_cfg(cfg, "cell_ms", 2000))
     flip_s = _fmt_s(_cfg(cfg, "flip_ms", 2000))
     beat_s = _fmt_s(_cfg(cfg, "heartbeat_ms", 10_000))
     minutes = _cfg(cfg, "time_limit_ms", 600_000) / 60_000
-
-    who = (
-        f"You are {agent}. You are in a room with 8 chairs and three other people. "
-        f"Your goal: {goal_text(goal, zone)}\n"
-        "Each of the other three has a goal of their own for the chairs."
-    )
-    if know_all_goals and others_goals:
-        who += " Their goals are:\n" + "\n".join(
-            f"- {name}: {goal_text(g, zone)}" for name, g in others_goals.items() if name != agent
-        )
-    else:
-        who += " You do not know what their goals are."
 
     room = f"""THE ROOM
 - The floor is a grid of 8 x 8 cells. A cell is written [x, y]: x is the column (0 = left edge, 7 = right edge) and y is the row (0 = top edge, 7 = bottom edge). [0, 0] is the top-left corner, [7, 7] the bottom-right corner.
@@ -95,7 +114,4 @@ With any action you may also fill in:
 {msg_line}
 - "notes": your new private notes. They replace your old notes completely. Use null to keep the old notes unchanged."""
 
-    prompt = "\n\n".join([who, room, timing, actions, talk, when, answer])
-    if leader_line:
-        prompt += "\n\n" + leader_line
-    return prompt
+    return "\n\n".join([room, timing, actions, talk, when, answer])

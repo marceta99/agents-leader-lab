@@ -711,3 +711,98 @@
     margin-top: 72px;
   }
 }
+
+/* ---- what you can vary ---- */
+.l-vary {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 24px;
+  margin-top: 112px;
+}
+.l-vary-intro {
+  grid-column: 1 / 6;
+}
+.l-vary-grid {
+  grid-column: 7 / -1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+.l-vary-grid li {
+  padding: 18px 0 20px;
+  border-top: 1px solid var(--line-strong);
+}
+.l-vary-grid h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+}
+.l-vary-grid p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+.l-vary-grid li.soon h3 {
+  color: var(--ink-2);
+}
+.l-soon {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  font-family: var(--font-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.l-steps-intro {
+  max-width: 640px;
+  color: var(--ink-2);
+  margin: 0;
+}
+.l-kicker {
+  margin: 0 0 12px;
+  font-size: 14px !important;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ---- the demo run, played in place ---- */
+.l-demo-run {
+  margin-top: 144px;
+  scroll-margin-top: 88px;
+}
+.l-demo-run > p {
+  max-width: 640px;
+  color: var(--ink-2);
+  margin: 0 0 24px;
+}
+.l-demo-wait {
+  min-height: 70vh;
+}
+@media (max-width: 1000px) {
+  .l-vary-intro,
+  .l-vary-grid {
+    grid-column: 1 / -1;
+  }
+  .l-vary-grid {
+    margin-top: 24px;
+  }
+}
+@media (max-width: 720px) {
+  .l-vary,
+  .l-demo-run {
+    margin-top: 72px;
+  }
+  .l-vary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

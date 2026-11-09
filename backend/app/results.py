@@ -33,7 +33,8 @@ def public_setup(exp) -> dict | None:
     if exp is None:
         return None
     c = exp.config or {}
-    return {k: c.get(k) for k in ("know_all_goals", "budget", "add_leader", "runs", "model", "leader_prompts")}
+    keys = ("know_all_goals", "budget", "add_leader", "runs", "model", "leader_prompts", "goals", "agent_prompts")
+    return {k: c.get(k) for k in keys}
 
 
 def experiment_summary(exp, runs) -> dict:

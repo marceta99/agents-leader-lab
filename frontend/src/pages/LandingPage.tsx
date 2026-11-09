@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useMe } from '../auth'
@@ -7,6 +7,7 @@ import Hero from '../landing/Hero'
 import IndexCards from '../landing/IndexCards'
 import '../landing/landing.css'
 import { AGENT_COLORS } from '../run/types'
+import { DemoRun } from './DemoPage'
 
 type Demo = { experiment: ExperimentSummary; runs: RunSummary[] }
 
@@ -28,27 +29,62 @@ const QUESTIONS = [
   ],
 ]
 
+// What an experiment can change. `soon`: shown, not yet available.
+const VARY: { name: string; text: string; soon?: boolean }[] = [
+  { name: 'Goals', text: 'Keep the four built-in goals or write your own for any agent.' },
+  { name: 'Agent prompts', text: 'Edit just the goal, or rewrite everything an agent is told about itself.' },
+  { name: 'What they know', text: 'Each agent knows only its own goal, or everyone knows all of them.' },
+  { name: 'Budgets', text: 'Equal actions for all, or one agent far richer than the rest.' },
+  { name: 'A leader', text: 'Tell one agent to lead, by giving instructions or by asking and proposing, in your own words.' },
+  { name: 'Model', text: 'Claude Haiku, Sonnet or Opus for every agent.' },
+  { name: 'Team size', text: 'Teams of 1 to 8 agents.', soon: true },
+  { name: 'Rules', text: 'Read the full rules every agent gets. Editing them comes later.', soon: true },
+]
+
 const STEPS = [
   [
-    'Four agents, four goals',
-    'Sam, Sky, Sol and Sage share one room with eight chairs, which stands in for a shared codebase. Each gets its own goal, such as “Turn all the chairs upside down,” and its own budget of actions.',
+    'One room, eight chairs',
+    'An 8 x 8 floor split into four coloured zones, with eight numbered chairs. The room stands in for a shared codebase: everyone works on the same objects.',
   ],
   [
-    'They talk and work as equals',
-    'Nobody is put in charge. There are no turns: agents walk, carry or flip chairs, and post in one shared chat. Every move or flip costs one action.',
+    'Four agents, four goals',
+    'Sam, Sky, Sol and Sage each get a goal, such as “Turn all the chairs upside down”, and a budget of actions. Nobody is put in charge.',
+  ],
+  [
+    'Real time, one chat',
+    'No turns: agents walk, carry or flip chairs while the others move. Each move or flip costs one action. One shared chat is the only way to agree on anything.',
   ],
   [
     'The game ends',
-    'It stops when all four goals are met, the actions run out, the agents only talk without acting, or time runs out. The goals only look like they clash: a hollow square of upside-down chairs in the named zone meets all four.',
-  ],
-  [
-    'We measure influence',
-    'A model finds every instruction, prohibition and proposed plan in the chat, checks whose actions followed, and replays those decisions with and without the message.',
+    'When every goal is met, the actions run out, the agents only talk without acting, or ten minutes pass. The built-in goals only look like they clash: a hollow square of upside-down chairs in the named zone meets all four.',
   ],
 ]
 
 // Tilt for each print in the gallery; repeats if there are more runs.
 const PRINT_TILT = [-2.5, 1.5, -1, 2.5, -2, 1, -1.5, 2]
+
+/** Mounts the demo run only when its section comes near the screen, so it starts playing when seen. */
+function DemoSection() {
+  const ref = useRef<HTMLElement>(null)
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || shown) return
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setShown(true), { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [shown])
+  return (
+    <section id="demo" ref={ref} className="l-wrap l-demo-run" aria-labelledby="demo-title">
+      <h2 id="demo-title">Watch a demo run</h2>
+      <p>
+        A finished game from a demo experiment, replayed with the choices behind it. The measurements appear when the
+        game ends, just as the researcher saw them.
+      </p>
+      {shown ? <DemoRun /> : <div className="l-demo-wait" aria-hidden="true" />}
+    </section>
+  )
+}
 
 export default function LandingPage() {
   const { me, loading } = useMe()
@@ -74,8 +110,73 @@ export default function LandingPage() {
     <div className="landing">
       <Hero loggedIn={!!me} loading={loading} />
 
+      <section className="l-wrap l-vary" aria-labelledby="v-title">
+        <div className="l-vary-intro">
+          <h2 id="v-title">A lab for flat agent teams</h2>
+          <p>
+            More and more work is split among AI agents that answer to different teams. Nobody designed a hierarchy
+            between them, so any leadership that appears is emergent, and the people overseeing them may not see it.
+          </p>
+          <p>
+            The lab lets a research team test which conditions make an agent take the lead. Change one thing, keep the
+            rest, and every run plays the same numbered layouts, so groups compare fairly.
+          </p>
+        </div>
+        <ul className="l-vary-grid">
+          {VARY.map((v) => (
+            <li key={v.name} className={v.soon ? 'soon' : undefined}>
+              <h3>
+                {v.name}
+                {v.soon && <span className="l-soon">Coming soon</span>}
+              </h3>
+              <p>{v.text}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="l-wrap l-leader" aria-labelledby="l-title">
+        <div className="l-leader-text">
+          <h2 id="l-title">How influence is measured</h2>
+          <p>
+            We call an agent a leader when its messages measurably change what the others do, not when it talks the most
+            or calls itself one. For every instruction that was followed, every plan that was adopted and every request to
+            leave a chair alone, we replay the other agent’s decision ten times: five with the message, five with it
+            removed.
+          </p>
+          <p>
+            If the follower would have done the same thing anyway, the message gets no credit. The main result is each
+            agent’s share of all that influence, against the 25% chance line. Counting adopted plans matters: a leader
+            that steers without giving orders would otherwise be invisible, and monitors need to see whose framing and
+            proposals the group takes up.
+          </p>
+          <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
+        </div>
+        <IndexCards />
+      </section>
+
+      <section className="l-wrap l-steps" aria-labelledby="s-title">
+        <h2 id="s-title">The Chair Game</h2>
+        <p className="l-steps-intro">
+          The game every experiment plays. Simple enough to check automatically, open enough that the agents have to
+          talk to get anywhere.
+        </p>
+        <ol>
+          {STEPS.map(([title, text], i) => (
+            <li key={title}>
+              <span className="l-step-n" aria-hidden="true">
+                {i + 1}
+              </span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <section className="l-wrap l-question" aria-labelledby="q-title">
         <div className="l-question-intro">
+          <p className="l-kicker">Example study</p>
           <h2 id="q-title">Four teams, four agents, one codebase</h2>
           <p>
             Organisations split project work among specialist teams, each with its own goal. Picture a software project
@@ -127,44 +228,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="l-wrap l-steps" aria-labelledby="s-title">
-        <h2 id="s-title">How a run works</h2>
-        <ol>
-          {STEPS.map(([title, text], i) => (
-            <li key={title}>
-              <span className="l-step-n" aria-hidden="true">
-                {i + 1}
-              </span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
 
-      <section className="l-wrap l-leader" aria-labelledby="l-title">
-        <div className="l-leader-text">
-          <h2 id="l-title">The leader is whoever gets followed</h2>
-          <p>
-            We call an agent a leader when its messages measurably change what the others do, not when it talks the most
-            or calls itself one. For every instruction that was followed, every plan that was adopted and every request to
-            leave a chair alone, we replay the other agent’s decision ten times: five with the message, five with it
-            removed.
-          </p>
-          <p>
-            If the follower would have done the same thing anyway, the message gets no credit. The main result is each
-            agent’s share of all that influence, against the 25% chance line. Counting adopted plans matters: a leader
-            that steers without giving orders would otherwise be invisible, and monitors need to see whose framing and
-            proposals the group takes up.
-          </p>
-          <p className="l-small">These cards come from a demo run where Sky was told to lead by giving instructions.</p>
-        </div>
-        <IndexCards />
-      </section>
+      <DemoSection />
 
       {demos.length > 0 && (
         <section className="l-wrap l-demos" aria-labelledby="d-title">
-          <h2 id="d-title">Watch finished runs</h2>
+          <h2 id="d-title">More finished runs</h2>
           <p>Each print is one game from a demo experiment. Open it to replay the room, the chat and the result. No account needed.</p>
           {demos.map(({ experiment: e, runs }) => (
             <div key={e.id} className="l-demo">
@@ -212,9 +281,9 @@ export default function LandingPage() {
           </p>
           <div className="hero-cta">
             {primary}
-            <Link to="/demo" className="button big ghost-invert">
+            <a href="#demo" className="button big ghost-invert">
               Watch a demo run
-            </Link>
+            </a>
           </div>
         </div>
       </section>

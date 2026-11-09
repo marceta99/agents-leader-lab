@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.prompts import AGENT_PROMPT, rules
 from app.db import get_db
+from app.game.board import GOALS, goal_text
+from app.settings_store import get_settings
 from app.models import Experiment, Run, RunEvent
 from app.results import experiment_summary, public_setup, run_summary
 
@@ -27,6 +30,17 @@ async def public_run(token: str, db: AsyncSession = Depends(get_db)):
         "group": run.group, "layout_no": run.layout_no, "status": run.status, "end_reason": run.end_reason,
         "cost_usd": run.cost_usd, "result": run.result, "is_owner": False, "setup": public_setup(exp),
     }
+
+
+@router.get("/api/public/prompts")
+async def default_prompts(db: AsyncSession = Depends(get_db)):
+    """What agents are told by default: the agent prompt template, the built-in goals and the rules
+    (with the current settings; the budget shown as a placeholder)."""
+    s = await get_settings(db)
+    cfg = {"cell_ms": s["cell_seconds"] * 1000, "flip_ms": s["flip_seconds"] * 1000,
+           "heartbeat_ms": s["heartbeat_s"] * 1000, "time_limit_ms": s["time_limit_s"] * 1000}
+    return {"agent_prompt": AGENT_PROMPT, "goals": {g: goal_text(g) for g in GOALS},
+            "rules": rules("{budget}", cfg)}
 
 
 @router.get("/api/public/demo-run")

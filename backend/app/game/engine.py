@@ -8,7 +8,7 @@ every due time in order, so large jumps behave exactly like many small ticks.
 import random
 from dataclasses import dataclass
 
-from app.game.board import GRID, in_grid
+from app.game.board import GOALS, GRID, in_grid
 from app.game.goals import goals_met
 from app.game.solver import completion
 
@@ -48,6 +48,8 @@ class Game:
         self._drained = 0
         self._met: dict | None = None
         self._last_change = 0
+        # Solved and completion only exist when every agent has a built-in goal the game can check.
+        self.checkable = all(g in GOALS for g in layout.goals.values())
         self.chairs = {cid: {"cell": tuple(cell), "upside_down": False, "held_by": None} for cid, cell in layout.chairs}
         self.agents = {
             name: {
@@ -105,7 +107,10 @@ class Game:
         if self.ended:
             return
         met = goals_met(self.chairs.values(), self.layout.zone)
-        done = 1.0 if reason == "solved" else completion(self.chairs.values(), self.layout.min_actions, self.layout.zone)
+        if not self.checkable:
+            done = None  # a custom goal: the game cannot tell how close the room is
+        else:
+            done = 1.0 if reason == "solved" else completion(self.chairs.values(), self.layout.min_actions, self.layout.zone)
         self.emit("run_ended", {"reason": reason, "solved": reason == "solved", "met": met, "duration_ms": self.t,
                                 "completion": done})
         self.ended = reason
@@ -146,7 +151,7 @@ class Game:
             self.emit("goals", {"met": met})
         if any(ch["held_by"] for ch in self.chairs.values()):
             return
-        if all(met.values()):
+        if self.checkable and all(met.values()):
             self.end("solved")
         elif all(a["budget"] == 0 for a in self.agents.values()):
             self.end("budget_exhausted")
@@ -210,7 +215,7 @@ class Game:
             "you": {
                 "name": agent, "cell": list(a["cell"]), "state": a["state"], "holding": a["holding"],
                 "heading": dict(a["plan"]) if a["plan"] else None,
-                "budget_left": a["budget"], "goal": a["goal"], "goal_met": met[a["goal"]],
+                "budget_left": a["budget"], "goal": a["goal"], "goal_met": met.get(a["goal"]),
             },
             "others": [
                 {"name": n, "cell": list(o["cell"]), "holding": o["holding"], "budget_left": o["budget"],

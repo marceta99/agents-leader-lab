@@ -3,7 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useMe } from '../auth'
 import { errorText, experimentName, GROUP_LABELS, LEADER_DEFAULTS, LEADER_MAX, LEADER_STYLES, MODELS, money } from '../format'
+import { useDefaultPrompts } from '../prompts'
 import RequireAuth from '../RequireAuth'
+import { GOAL_IDS } from '../run/types'
+import AgentsSection, { agentErrors } from './AgentsSection'
 import Field from '../ui/Field'
 import './pages.css'
 
@@ -65,6 +68,9 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   const [leaderPrompts, setLeaderPrompts] = useState<Record<string, string>>(() =>
     Object.fromEntries(LEADER_STYLES.map((g) => [g, LEADER_DEFAULTS[g]])),
   )
+  const [goals, setGoals] = useState<string[]>(GOAL_IDS)
+  const [agentPrompts, setAgentPrompts] = useState<(string | null)[]>([null, null, null, null])
+  const defaults = useDefaultPrompts()
   const [runs, setRuns] = useState('')
   const [model, setModel] = useState(MODELS[0].id)
   const [cap, setCap] = useState('5')
@@ -90,7 +96,10 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
       !addLeader ? '' : !t.trim() ? 'Write what the leader is told, or reset to the default.' : t.length > LEADER_MAX ? `At most ${LEADER_MAX} characters.` : '',
     ]),
   )
-  const promptError = Object.values(promptErrors).some(Boolean)
+  const agentError = agentErrors(goals, agentPrompts).some((e) => e.goal || e.prompt)
+  const promptError = Object.values(promptErrors).some(Boolean) || agentError
+  const customGoals = goals.some((g, i) => g !== GOAL_IDS[i]) ? goals.map((g) => g.trim()) : null
+  const customPrompts = agentPrompts.some((p) => p != null) ? agentPrompts : null
   const valid = !budgetError && !runsError && !capError
 
   const config = {
@@ -103,7 +112,7 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
   }
   const configKey = JSON.stringify(config)
   const localRunsTotal = runsError ? null : runsN * (addLeader ? LEADER_STYLES.length : 1)
-  const name = budgetError ? '—' : experimentName(config)
+  const name = budgetError ? '—' : experimentName({ ...config, goals: customGoals, agent_prompts: customPrompts })
 
   // Debounced cost estimate, refreshed whenever the config changes.
   useEffect(() => {
@@ -142,7 +151,7 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
     setBusy(true)
     setError('')
     try {
-      const json = { ...config, leader_prompts: addLeader ? leaderPrompts : null }
+      const json = { ...config, leader_prompts: addLeader ? leaderPrompts : null, goals: customGoals, agent_prompts: customPrompts }
       const exp = await api<{ id: number }>('/api/experiments', { json })
       navigate(`/experiments/${exp.id}`, { state: { launched: true } })
     } catch (err) {
@@ -162,9 +171,22 @@ function NewExperimentForm({ hasKey }: { hasKey: boolean }) {
     <form className="new-exp" onSubmit={launch} noValidate>
       <div className="panel form-sheet">
         <Section
+          id="s-agents"
+          title="Agents"
+          intro={
+            <p>
+              Each agent is a position with its own goal and prompt. Names are shuffled every run, so Agent 1 is not
+              always Sam. Edit just the goal, or the whole prompt the agent starts from.
+            </p>
+          }
+        >
+          <AgentsSection goals={goals} setGoals={setGoals} prompts={agentPrompts} setPrompts={setAgentPrompts} defaults={defaults} />
+        </Section>
+
+        <Section
           id="s-goals"
-          title="Goals"
-          intro={<p>Each agent has its own goal for the chairs. Whether they know each other's goals changes how much they need to talk.</p>}
+          title="What they know"
+          intro={<p>Whether the agents know each other's goals changes how much they need to talk.</p>}
         >
           <div className="choices two" role="radiogroup" aria-labelledby="s-goals">
             <Choice name="goals" checked={!knowAll} onChange={() => setKnowAll(false)} title="Each knows only its own" tag="Default">
