@@ -7,6 +7,7 @@ import { fmtTime, stateAt } from './reducer'
 import Room3D from './Room3D'
 import './run.css'
 import SetupOverview from './SetupOverview'
+import ResultsView, { runResults } from '../pages/ResultsView'
 import Timeline from './Timeline'
 import { GOAL_IDS, GOAL_SHORT, isGoalId } from './types'
 import { usePlayback } from './usePlayback'
@@ -168,6 +169,22 @@ export default function RunViewer(props: { runId?: number; shareToken?: string; 
           </div>
         </div>
       </div>
+
+      {props.demo && result && (
+        <section className="rv-results" aria-labelledby="rv-results-title">
+          <h2 id="rv-results-title">Results</h2>
+          <p className="muted">
+            What the experiment page shows once runs are measured, here for this one run. A real experiment averages
+            these numbers over all its runs.
+          </p>
+          <ResultsView
+            results={runResults(result, run.group)}
+            budget={run.setup?.budget ?? []}
+            addLeader={!!run.setup?.add_leader}
+            leaderPrompts={run.setup?.leader_prompts}
+          />
+        </section>
+      )}
     </div>
   )
 }

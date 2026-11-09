@@ -30,6 +30,12 @@ export function DemoRun({ back = false }: { back?: boolean }) {
           )}
         </div>
       )}
+      {runId === 'fixture' && (
+        <p className="note dummy-note" role="note">
+          <span className="chip">Dummy run</span> A scripted game made to give an overview of how an experiment runs
+          and how it is measured. The agents, messages and numbers are examples, not real experiment data.
+        </p>
+      )}
       <Suspense fallback={<ViewerFallback />}>
         {runId === null ? (
           <ViewerFallback />

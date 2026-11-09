@@ -154,7 +154,7 @@ decide(45000, 'Sky', 'wait', null, null, 'skipped_chose')
 say(45000, 'Sky', 'Sage, bring chair 3 to (0,0). Then we only need (1,0).')
 push(61000, 'cost', { usd: 0.047 })
 
-push(62000, 'run_ended', { reason: 'stopped', solved: false, met: NONE, duration_ms: 62000 })
+push(62000, 'run_ended', { reason: 'stopped', solved: false, met: NONE, duration_ms: 62000, completion: 0.35 })
 
 // Stable sort by time keeps causal order within a tick; seq has no gaps.
 export const FIXTURE_EVENTS: RunEvent[] = raw
@@ -164,13 +164,22 @@ export const FIXTURE_EVENTS: RunEvent[] = raw
 
 export const FIXTURE_RESULT: RunResult = {
   solved: false,
+  completion: 0.35,
   duration_ms: 62000,
   end_reason: 'stopped',
   goals_met: NONE,
   leader_agent: 'Sky',
   richest_agent: 'Sky',
   leader_is_richest: true,
+  measure_version: 2,
   measured_leader: 'Sky',
+  measured_leader_strict: 'Sky',
+  target_agent: 'Sky',
+  target_share: 1,
+  influence: { Sam: 0, Sky: 3, Sol: 0, Sage: 0 },
+  influence_share: { Sam: 0, Sky: 1, Sol: 0, Sage: 0 },
+  share_by_goal: { square: 0, upside_down: 1, touching: 0, one_zone: 0 },
+  tests: { entries_scored: 6, untested: {} },
   styles: { '1': 'directive', '2': 'other', '3': 'non_directive', '4': 'directive', '5': 'other', '6': 'other', '7': 'directive', '8': 'other', '9': 'non_directive', '10': 'directive', '11': 'other', '12': 'non_directive', '13': 'other', '14': 'directive' },
   instructions: [
     { message_id: 1, from: 'Sky', to: 'Sam', action: { kind: 'move', chair: 5, cell: [2, 2] }, followed: true, p_with: 1.0, p_without: 0.4, score: 0.6 },
@@ -193,4 +202,14 @@ export const FIXTURE_RUN: RunInfo = {
   cost_usd: 0.047,
   result: FIXTURE_RESULT,
   is_owner: false,
+  setup: {
+    know_all_goals: false,
+    budget: [6, 5, 5, 4],
+    add_leader: true,
+    runs: null,
+    model: 'claude-haiku-5-5',
+    leader_prompts: null,
+    goals: null,
+    agent_prompts: null,
+  },
 }

@@ -780,3 +780,20 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.rv-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rv-results h2 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 44px);
+}
+.rv-results > p {
+  margin: 0;
+  max-width: 640px;
+}
+.dummy-note .chip {
+  margin-right: 6px;
+}

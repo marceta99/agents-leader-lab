@@ -150,6 +150,8 @@ export interface RunResult {
   instructions?: Instruction[]
   styles?: Record<string, Style>
   style_mix?: Record<string, Record<Style, number>>
+  share_by_goal?: Record<string, number | null>
+  tests?: { entries_scored?: number; untested?: Record<string, number> }
   invalid_share?: number
   partial?: boolean
   measure_cost_usd?: number

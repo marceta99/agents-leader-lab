@@ -3,11 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import {
   dateLabel,
-  duration,
   errorText,
-  GROUP_LABELS,
   groupLabel,
-  leaderText,
   modelLabel,
   money,
   percent,
@@ -16,10 +13,11 @@ import {
   type RunSummary,
 } from '../format'
 import RequireAuth from '../RequireAuth'
-import { ChanceBar, Meter, StyleMix, type StyleMixData } from '../ui/Charts'
+import { Meter } from '../ui/Charts'
 import ConfirmButton from '../ui/ConfirmButton'
 import { AgentName, BackLink, StatusBadge } from '../ui/Labels'
 import './pages.css'
+import ResultsView, { type Results } from './ResultsView'
 import { GOAL_IDS, type GoalId } from '../run/types'
 
 type Config = {
@@ -35,26 +33,8 @@ type Config = {
   settings?: Record<string, unknown>
 }
 type Detail = ExperimentSummary & { config: Config; stop_reason: string | null; runs: RunSummary[] }
-type GroupStats = {
-  runs: number
-  solved_rate: number | null
-  completion_avg: number | null
-  leader_rate: number | null
-  avg_duration_s: number | null
-  richest_leader_rate: number | null
-  leader_became_measured_rate: number | null
-  target_share_avg: number | null
-  target_share_runs: number
-  share_by_goal_avg: Record<string, number | null>
-  share_by_goal_runs?: number
-  untested_rate: number | null
-  leader_rate_strict: number | null
-  style_mix: StyleMixData
-}
-type Results = { groups: Record<string, GroupStats>; overall: GroupStats; excluded: number }
 
 const ACTIVE = ['queued', 'running', 'measuring', 'paused']
-const LEADER_GROUPS = ['none', 'free', 'directive', 'nondirective']
 const FILTERS = [
   ['any', 'All runs'],
   ['leader_is_richest', 'Leader is the richest agent'],
@@ -225,57 +205,6 @@ function RunsTable({ exp }: { exp: Detail }) {
   )
 }
 
-function GroupColumn({ g, s, prompts }: { g: string; s: GroupStats | undefined; prompts?: Record<string, string> | null }) {
-  return (
-    <div className="gcol">
-      <div className="gcol-head">
-        <h3>{GROUP_LABELS[g]}</h3>
-        <p className="gcol-quote">{leaderText(g, prompts)}</p>
-        <p className="muted small-text tnum">{s ? `${s.runs} ${s.runs === 1 ? 'run' : 'runs'}` : 'No runs'}</p>
-      </div>
-      <div className="gcell">
-        <span className="glabel">{g === 'none' ? "Richest agent's influence share" : "Leader agent's influence share"}</span>
-        {s?.target_share_avg == null ? (
-          <p className="muted small-text">
-            {g === 'none' ? 'No agent is told to lead, and with equal budgets nobody is the richest.' : 'No influence measured yet.'}
-          </p>
-        ) : (
-          <>
-            <span className="gvalue tnum">{percent(s.target_share_avg)}</span>
-            <ChanceBar rate={s.target_share_avg} label={`${GROUP_LABELS[g]}: influence share`} />
-          </>
-        )}
-      </div>
-      <div className="gcell">
-        <span className="glabel">Became the measured leader</span>
-        <span className="gvalue tnum">{g === 'none' ? '—' : percent(s?.leader_became_measured_rate)}</span>
-      </div>
-      <div className="gcell">
-        <span className="glabel">Had a measured leader, 1+ / 2+ followers</span>
-        <span className="gvalue tnum">
-          {percent(s?.leader_rate)} / {percent(s?.leader_rate_strict)}
-        </span>
-      </div>
-      <div className="gcell">
-        <span className="glabel">Solved</span>
-        <span className="gvalue tnum">{percent(s?.solved_rate)}</span>
-      </div>
-      <div className="gcell">
-        <span className="glabel">Average completion</span>
-        <span className="gvalue tnum">{percent(s?.completion_avg)}</span>
-      </div>
-      <div className="gcell">
-        <span className="glabel">Average time</span>
-        <span className="gvalue tnum">{duration(s?.avg_duration_s)}</span>
-      </div>
-      <div className="gcell">
-        <span className="glabel">Style of all messages</span>
-        {s ? <StyleMix mix={s.style_mix} /> : <span className="muted">—</span>}
-      </div>
-    </div>
-  )
-}
-
 function ResultsSection({ exp }: { exp: Detail }) {
   const [richest, setRichest] = useState('any')
   const [results, setResults] = useState<Results | null>(null)
@@ -298,8 +227,6 @@ function ResultsSection({ exp }: { exp: Detail }) {
   }, [exp.id, richest, exp.runs_done, exp.status, attempt])
 
   const o = results?.overall
-  const equalBudgets = new Set(exp.config.budget).size === 1
-  const targetLabel = exp.config.add_leader ? 'agent told to lead' : equalBudgets ? null : 'richest agent'
 
   return (
     <section className="block" aria-labelledby="results-title">
@@ -358,103 +285,12 @@ function ResultsSection({ exp }: { exp: Detail }) {
       )}
 
       {o && results && o.runs > 0 && (
-        <>
-          <div className="panel results-sheet">
-            <dl className="scoreboard">
-              <div>
-                <dt>Runs counted</dt>
-                <dd className="tnum">{o.runs}</dd>
-              </div>
-              <div>
-                <dt>Solved</dt>
-                <dd className="tnum">{percent(o.solved_rate)}</dd>
-              </div>
-              <div>
-                <dt>Had a measured leader, 1+ / 2+ followers</dt>
-                <dd className="tnum">
-                  {percent(o.leader_rate)} / {percent(o.leader_rate_strict)}
-                </dd>
-              </div>
-              <div>
-                <dt>Followed but not testable</dt>
-                <dd className="tnum">{percent(o.untested_rate)}</dd>
-              </div>
-              <div>
-                <dt>Average game, min:sec</dt>
-                <dd className="tnum">{duration(o.avg_duration_s)}</dd>
-              </div>
-              <div>
-                <dt>Average completion</dt>
-                <dd className="tnum">{percent(o.completion_avg)}</dd>
-              </div>
-            </dl>
-
-            <div className="primary-outcome">
-              <h3>{targetLabel ? `Influence share of the ${targetLabel}` : 'Influence share by goal'}</h3>
-              {targetLabel ? (
-                o.target_share_avg == null ? (
-                  <p className="muted">No run has measured influence yet.</p>
-                ) : (
-                  <>
-                    <p className="richest-figure tnum">{percent(o.target_share_avg)}</p>
-                    <ChanceBar rate={o.target_share_avg} label={`Influence share of the ${targetLabel}`} axis />
-                  </>
-                )
-              ) : (
-                <dl className="goal-shares">
-                  {Object.entries(o.share_by_goal_avg).map(([goal, v]) => (
-                    <div key={goal}>
-                      <dt>{goal.replace('_', ' ')}</dt>
-                      <dd className="tnum">{percent(v)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              <p className="muted small-text">
-                The main result: of all the influence measured in a run, the share that came from{' '}
-                {targetLabel ? `the ${targetLabel}` : 'the agent playing each goal'}, averaged over the{' '}
-                {targetLabel ? o.target_share_runs : (o.share_by_goal_runs ?? 0)} runs where someone influenced someone. With four agents, chance gives 25%.
-              </p>
-            </div>
-
-            <div className="results-split">
-              <div className="richest">
-                <h3>How often the measured leader was the richest agent</h3>
-                {equalBudgets ? (
-                  <p className="muted">All four budgets are equal, so no agent is the richest. Use unequal budgets to test this.</p>
-                ) : o.richest_leader_rate == null ? (
-                  <p className="muted">No run had a measured leader yet, so there is nothing to compare.</p>
-                ) : (
-                  <>
-                    <p className="richest-figure tnum">{percent(o.richest_leader_rate)}</p>
-                    <ChanceBar rate={o.richest_leader_rate} label="Measured leader was the richest agent" axis />
-                    <p className="muted small-text">
-                      With four agents, chance gives 25%. Far above the line means budget decides who leads.
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="styles">
-                <h3>Style of the messages</h3>
-                <StyleMix mix={o.style_mix} />
-                <p className="muted small-text">
-                  Directive: instructions. Non-directive: proposals, questions and summaries.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {exp.config.add_leader && (
-            <div className="panel compare-sheet">
-              <h3 className="compare-title">The groups side by side</h3>
-              <div className="compare">
-                {LEADER_GROUPS.filter((g) => results.groups[g]).map((g) => (
-                  <GroupColumn key={g} g={g} s={results.groups[g]} prompts={exp.config.leader_prompts} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        <ResultsView
+          results={results}
+          budget={exp.config.budget}
+          addLeader={exp.config.add_leader}
+          leaderPrompts={exp.config.leader_prompts}
+        />
       )}
       {results && results.excluded > 0 && (
         <p className="muted small-text">
