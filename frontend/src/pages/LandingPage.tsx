@@ -174,6 +174,7 @@ export default function LandingPage() {
       <section className="l-wrap l-question" aria-labelledby="q-title">
         <div className="l-question-intro">
           <h2 id="q-title">Example study</h2>
+          <p className="l-kicker">Done at the Apart Swarm hackathon</p>
           <p>
             Four teams each deploy an AI agent on one software project: a new feature, passing tests, security fixes,
             current docs. The goals fit together, but all four agents change the same code, and nobody is in charge.
