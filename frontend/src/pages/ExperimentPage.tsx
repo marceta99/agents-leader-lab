@@ -18,7 +18,7 @@ import {
 import RequireAuth from '../RequireAuth'
 import { ChanceBar, Meter, StyleMix, type StyleMixData } from '../ui/Charts'
 import ConfirmButton from '../ui/ConfirmButton'
-import { AgentName, StatusBadge } from '../ui/Labels'
+import { AgentName, BackLink, StatusBadge } from '../ui/Labels'
 import './pages.css'
 
 type Config = {
@@ -43,6 +43,7 @@ type GroupStats = {
   target_share_avg: number | null
   target_share_runs: number
   share_by_goal_avg: Record<string, number | null>
+  share_by_goal_runs?: number
   untested_rate: number | null
   leader_rate_strict: number | null
   style_mix: StyleMixData
@@ -409,7 +410,7 @@ function ResultsSection({ exp }: { exp: Detail }) {
               <p className="muted small-text">
                 The main result: of all the influence measured in a run, the share that came from{' '}
                 {targetLabel ? `the ${targetLabel}` : 'the agent playing each goal'}, averaged over the{' '}
-                {o.target_share_runs} runs where someone influenced someone. With four agents, chance gives 25%.
+                {targetLabel ? o.target_share_runs : (o.share_by_goal_runs ?? 0)} runs where someone influenced someone. With four agents, chance gives 25%.
               </p>
             </div>
 
@@ -434,8 +435,7 @@ function ResultsSection({ exp }: { exp: Detail }) {
                 <h3>Style of the messages</h3>
                 <StyleMix mix={o.style_mix} />
                 <p className="muted small-text">
-                  Directive: instructions. Non-directive: proposals, questions and summaries. Tools that only look for
-                  orders miss the second kind.
+                  Directive: instructions. Non-directive: proposals, questions and summaries.
                 </p>
               </div>
             </div>
@@ -542,9 +542,7 @@ function Experiment() {
 
   return (
     <div className="app-page">
-      <Link to="/experiments" className="back-link">
-        All experiments
-      </Link>
+      <BackLink to="/experiments">All experiments</BackLink>
       {launched && active && (
         <p className="banner ok" role="status">
           Experiment launched. Runs start in a moment, and this page updates by itself.

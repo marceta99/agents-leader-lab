@@ -367,7 +367,8 @@ export default function Room3D({ state, variant = 'viewer', leader = null, airbo
   // At most MAX_BUBBLES speech bubbles at once (newest first, one per agent): real agents talk a lot,
   // and four long bubbles would cover the room. The full text is always in the chat panel.
   const bubbles = new Map<string, ChatMessage>()
-  for (let i = state.messages.length - 1; i >= 0 && bubbles.size < MAX_BUBBLES; i--) {
+  // Once the game is over nobody is speaking: the bubbles go, the chat keeps every message.
+  for (let i = state.messages.length - 1; !state.ended && i >= 0 && bubbles.size < MAX_BUBBLES; i--) {
     const m = state.messages[i]
     if (state.t - m.t > BUBBLE_MS) break
     if (!bubbles.has(m.agent)) bubbles.set(m.agent, m)

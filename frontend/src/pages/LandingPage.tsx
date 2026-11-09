@@ -212,6 +212,9 @@ export default function LandingPage() {
           </p>
           <div className="hero-cta">
             {primary}
+            <Link to="/demo" className="button big ghost-invert">
+              Watch a demo run
+            </Link>
           </div>
         </div>
       </section>

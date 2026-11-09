@@ -164,6 +164,16 @@ export interface RunInfo {
   result: RunResult | null
   share_token?: string | null
   is_owner: boolean
+  setup?: RunSetup | null // the experiment's choices (no settings, no user data)
+}
+
+export interface RunSetup {
+  know_all_goals: boolean
+  budget: number[]
+  add_leader: boolean
+  runs: number | null
+  model: string
+  leader_prompts: Record<string, string> | null
 }
 
 // ---- board state produced by the reducer ----

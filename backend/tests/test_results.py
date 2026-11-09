@@ -74,6 +74,10 @@ def test_aggregates_fixture():
     assert o["leader_became_measured_rate"] == pytest.approx(0.5)
     assert o["target_share_avg"] == pytest.approx(0.45)  # legacy results: share of the told leader
     assert o["target_share_runs"] == 2
+    assert o["share_by_goal_runs"] == 0 and o["share_by_goal_avg"] == {}
+    goal = aggregate([_run("finished", "none", share_by_goal={"square": 0.75, "touching": 0.25, "one_zone": None}),
+                      _run("finished", "none", share_by_goal={"square": None})], "any")["overall"]
+    assert goal["share_by_goal_runs"] == 1 and goal["share_by_goal_avg"] == {"square": 0.75, "touching": 0.25}
     assert o["leader_rate_strict"] == 0.0
     assert o["style_mix"] == {"directive": 2, "non_directive": 1, "other": 0}
     assert list(out["groups"]) == ["none", "free"]

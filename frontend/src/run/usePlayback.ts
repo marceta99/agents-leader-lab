@@ -53,7 +53,8 @@ export function usePlayback(events: RunEvent[], live: boolean) {
   }, [])
 
   const seek = (ms: number) => {
-    r.current.t = Math.max(0, Math.min(ms, r.current.duration))
+    // The slider moves in 100 ms steps: its last step snaps to the end, so the final events are reachable.
+    r.current.t = ms > r.current.duration - 100 ? r.current.duration : Math.max(0, ms)
     setT(r.current.t)
   }
   const toggle = () => {

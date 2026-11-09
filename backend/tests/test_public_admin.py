@@ -1,5 +1,5 @@
 from app.db import SessionLocal
-from app.models import Experiment
+from app.models import Experiment, Run
 from app.settings_store import DEFAULTS
 from tests.test_results import CONFIG, make_experiment
 
@@ -41,6 +41,20 @@ async def test_demo_visible_logged_out(admin_client, client):
     assert [d["experiment"]["id"] for d in demos] == [demo_id]
     assert demos[0]["runs"][0]["id"] == run_id and demos[0]["runs"][0]["measured_leader"] == "Sky"
     assert "admin@example.com" not in r.text and "user_id" not in demos[0]["experiment"]
+
+
+async def test_demo_run_picks_a_measured_demo_run(admin_client, client):
+    assert (await client.get("/api/public/demo-run")).status_code == 404
+    _, (a, b) = await make_experiment("admin@example.com", is_demo=True, n_runs=2)
+    _, (other,) = await make_experiment("admin@example.com")  # not a demo
+    async with SessionLocal() as db:
+        for rid in (a, other):
+            (await db.get(Run, rid)).result = {"measure_version": 2}
+        await db.commit()
+    assert (await client.get("/api/public/demo-run")).json() == {"run_id": a}  # b is unmeasured
+    assert (await client.get(f"/api/public/demo-run?exclude={a}")).json() == {"run_id": a}  # the only one
+    info = (await client.get(f"/api/runs/{a}")).json()
+    assert info["setup"]["model"] == "claude-haiku-5-5" and "settings" not in info["setup"]
 
 
 async def test_non_admin_403_on_settings(auth_client, client):

@@ -602,3 +602,118 @@
 .rv-canvas canvas {
   touch-action: pan-y !important;
 }
+
+/* ---- rotate hint: the room can be turned ---- */
+.rv-rotate {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(247, 248, 250, 0.92);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  box-shadow: var(--shadow-object);
+  pointer-events: none;
+}
+.rv-rotate svg {
+  animation: rv-spin 4s linear infinite;
+}
+@keyframes rv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-rotate svg {
+    animation: none;
+  }
+}
+
+/* ---- demo: setup overview and the reveal note ---- */
+.su {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.su-head h2 {
+  margin: 0 0 4px;
+  font-size: clamp(24px, 3vw, 32px);
+}
+.su-head p {
+  margin: 0;
+}
+.su-rows {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.su-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: start;
+}
+.su-row dt {
+  padding-top: 6px;
+  font-weight: 600;
+}
+.su-row dd {
+  margin: 0;
+  min-width: 0;
+}
+.su-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.su-options li {
+  padding: 5px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.su-options li.on {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+}
+.su-note {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .su {
+    padding: 16px;
+  }
+  .su-row {
+    grid-template-columns: 1fr;
+  }
+  .su-row dt {
+    padding-top: 0;
+  }
+}
+.rv-reveal {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.rv-reveal.on {
+  border: 1px solid var(--ok);
+  background: rgba(46, 139, 87, 0.08);
+  color: var(--ink);
+}

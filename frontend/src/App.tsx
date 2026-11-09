@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 import AdminPage from './pages/AdminPage'
+import DemoPage from './pages/DemoPage'
 import ExperimentPage from './pages/ExperimentPage'
 import ExperimentsPage from './pages/ExperimentsPage'
 import KeyPage from './pages/KeyPage'
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/experiments/new" element={<NewExperimentPage />} />
           <Route path="/experiments/:id" element={<ExperimentPage />} />
           <Route path="/runs/:id" element={<RunPage />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route path="/r/:token" element={<SharedRunPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>

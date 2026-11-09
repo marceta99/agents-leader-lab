@@ -133,6 +133,9 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
           >
             {props.loggedIn ? 'Go to experiments' : 'Start an experiment'}
           </Link>
+          <Link to="/demo" className="button big">
+            Watch a demo run
+          </Link>
         </div>
       </div>
       {wipe && !wipeDone && <div className="hero-wipe" aria-hidden="true" onAnimationEnd={() => setWipeDone(true)} />}

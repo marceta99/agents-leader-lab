@@ -173,12 +173,12 @@ export const FIXTURE_RESULT: RunResult = {
   measured_leader: 'Sky',
   styles: { '1': 'directive', '2': 'other', '3': 'non_directive', '4': 'directive', '5': 'other', '6': 'other', '7': 'directive', '8': 'other', '9': 'non_directive', '10': 'directive', '11': 'other', '12': 'non_directive', '13': 'other', '14': 'directive' },
   instructions: [
-    { message_id: 1, from: 'Sky', to: 'Sam', action: { kind: 'move', chair: 5, cell: [2, 2] }, followed: true, p_with: 1.0, p_without: 0.33, score: 0.67 },
-    { message_id: 1, from: 'Sky', to: 'Sol', action: { kind: 'flip', chair: 4, cell: null }, followed: true, p_with: 1.0, p_without: 0.67, score: 0.33 },
+    { message_id: 1, from: 'Sky', to: 'Sam', action: { kind: 'move', chair: 5, cell: [2, 2] }, followed: true, p_with: 1.0, p_without: 0.4, score: 0.6 },
+    { message_id: 1, from: 'Sky', to: 'Sol', action: { kind: 'flip', chair: 4, cell: null }, followed: true, p_with: 1.0, p_without: 0.6, score: 0.4 },
     { message_id: 4, from: 'Sky', to: 'Sage', action: { kind: 'move', chair: 8, cell: [0, 2] }, followed: true, p_with: 1.0, p_without: 0.0, score: 1.0 },
-    { message_id: 6, from: 'Sky', to: 'Sam', action: { kind: 'move', chair: 7, cell: [2, 0] }, followed: true, p_with: 1.0, p_without: 0.67, score: 0.33 },
-    { message_id: 10, from: 'Sky', to: 'Sol', action: { kind: 'flip', chair: 8, cell: null }, followed: true, p_with: 1.0, p_without: 0.33, score: 0.67 },
-    { message_id: 14, from: 'Sky', to: 'Sage', action: { kind: 'move', chair: 3, cell: [0, 0] }, followed: false, p_with: 0.33, p_without: 0.33, score: 0.0 },
+    { message_id: 6, from: 'Sky', to: 'Sam', action: { kind: 'move', chair: 7, cell: [2, 0] }, followed: true, p_with: 1.0, p_without: 0.8, score: 0.2 },
+    { message_id: 10, from: 'Sky', to: 'Sol', action: { kind: 'flip', chair: 8, cell: null }, followed: true, p_with: 1.0, p_without: 0.2, score: 0.8 },
+    { message_id: 14, from: 'Sky', to: 'Sage', action: { kind: 'move', chair: 3, cell: [0, 0] }, followed: false, p_with: 0.4, p_without: 0.4, score: 0.0 },
   ],
 }
 

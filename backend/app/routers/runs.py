@@ -9,6 +9,7 @@ from app.config import settings
 from app.db import SessionLocal, get_db
 from app.deps import optional_user
 from app.models import Experiment, Run, RunEvent, User
+from app.results import public_setup
 from app.security import SESSION_COOKIE, decode_token
 
 router = APIRouter()
@@ -37,7 +38,7 @@ async def get_run(run_id: int, user: User | None = Depends(optional_user), db: A
         "id": run.id, "experiment_id": run.experiment_id, "experiment_name": exp.name if exp else None,
         "group": run.group, "layout_no": run.layout_no, "status": run.status, "end_reason": run.end_reason,
         "cost_usd": run.cost_usd, "result": run.result, "share_token": run.share_token if is_owner else None,
-        "is_owner": is_owner,
+        "is_owner": is_owner, "setup": public_setup(exp),
     }
 
 

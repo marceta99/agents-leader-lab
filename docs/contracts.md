@@ -297,13 +297,13 @@ Response shapes:
    "excluded": n}
   ```
 
-  `GroupStats` is `{runs, solved_rate, completion_avg, target_share_avg, target_share_runs, share_by_goal_avg, untested_rate, leader_rate, leader_rate_strict, avg_duration_s, richest_leader_rate, leader_became_measured_rate, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
+  `GroupStats` is `{runs, solved_rate, completion_avg, target_share_avg, target_share_runs, share_by_goal_avg, share_by_goal_runs, untested_rate, leader_rate, leader_rate_strict, avg_duration_s, richest_leader_rate, leader_became_measured_rate, style_mix: {directive, non_directive, other}}`. A rate is `null` when its denominator is 0. `excluded` counts stopped, failed and partial runs.
 
 **Runs**
 
 | Endpoint | Response | Access |
 |---|---|---|
-| `GET /api/runs/{id}` | `{id, experiment_id, experiment_name, group, layout_no, status, end_reason, cost_usd, result, share_token, is_owner}` | owner, or a run of a demo experiment |
+| `GET /api/runs/{id}` | `{id, experiment_id, experiment_name, group, layout_no, status, end_reason, cost_usd, result, share_token, is_owner, setup}` | owner, or a run of a demo experiment. `setup` is the experiment's choices `{know_all_goals, budget, add_leader, runs, model, leader_prompts}`, no settings and no user data |
 | `GET /api/runs/{id}/events` | `[event]` | same as above |
 | `POST /api/runs/{id}/share` | `{token}` | owner |
 | `DELETE /api/runs/{id}/share` | 204 | owner |
@@ -319,6 +319,7 @@ The WebSocket sends every stored event with `seq > after`, then live events as t
 | `GET /api/public/runs/{token}` | Same shape as `GET /api/runs/{id}`, with `is_owner: false` and no `share_token`. |
 | `GET /api/public/runs/{token}/events` | `[event]` |
 | `GET /api/public/demos` | `[{experiment: ExperimentSummary (no user info), runs: [RunSummary]}]` |
+| `GET /api/public/demo-run?exclude=<run id>` | `{run_id}`: a random finished, measured run of a demo experiment, not `exclude` when another exists. 404 when there is none. The landing page's Watch a demo run plays it on `/demo`. |
 
 **Admin** (`is_admin`; 403 otherwise)
 

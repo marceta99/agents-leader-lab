@@ -1,10 +1,12 @@
+import random
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models import Experiment, Run, RunEvent
-from app.results import experiment_summary, run_summary
+from app.results import experiment_summary, public_setup, run_summary
 
 router = APIRouter()
 
@@ -23,8 +25,20 @@ async def public_run(token: str, db: AsyncSession = Depends(get_db)):
     return {
         "id": run.id, "experiment_id": run.experiment_id, "experiment_name": exp.name if exp else None,
         "group": run.group, "layout_no": run.layout_no, "status": run.status, "end_reason": run.end_reason,
-        "cost_usd": run.cost_usd, "result": run.result, "is_owner": False,
+        "cost_usd": run.cost_usd, "result": run.result, "is_owner": False, "setup": public_setup(exp),
     }
+
+
+@router.get("/api/public/demo-run")
+async def demo_run(exclude: int | None = None, db: AsyncSession = Depends(get_db)):
+    """A random finished and measured run from a demo experiment (not `exclude`, when there is another)."""
+    rows = (await db.execute(select(Run.id, Run.result).join(Experiment, Experiment.id == Run.experiment_id)
+                             .where(Experiment.is_demo.is_(True), Run.status == "finished"))).all()
+    ids = [i for i, r in rows if (r or {}).get("measure_version") and not (r or {}).get("measure_error")]
+    ids = [i for i in ids if i != exclude] or ids
+    if not ids:
+        raise HTTPException(404, "No demo run yet")
+    return {"run_id": random.choice(ids)}  # ponytail: loads every demo run's result; fine for a handful of demos
 
 
 @router.get("/api/public/runs/{token}/events")

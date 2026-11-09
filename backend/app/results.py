@@ -28,6 +28,14 @@ def run_summary(run, budgets: list[int] | None = None) -> dict:
     }
 
 
+def public_setup(exp) -> dict | None:
+    """The choices made when the experiment was created, without settings or anything about the user."""
+    if exp is None:
+        return None
+    c = exp.config or {}
+    return {k: c.get(k) for k in ("know_all_goals", "budget", "add_leader", "runs", "model", "leader_prompts")}
+
+
 def experiment_summary(exp, runs) -> dict:
     cfg = exp.config or {}
     return {
@@ -62,10 +70,12 @@ def _group_stats(results: list[dict]) -> dict:
     completions = [r["completion"] for r in results if r.get("completion") is not None]
     targets = [s for s in map(_target_share, results) if s is not None]
     by_goal: dict[str, list] = {}
+    goal_runs = 0
     for r in results:
-        for goal, s in (r.get("share_by_goal") or {}).items():
-            if s is not None:
-                by_goal.setdefault(goal, []).append(s)
+        shares = {g: s for g, s in (r.get("share_by_goal") or {}).items() if s is not None}
+        goal_runs += bool(shares)
+        for goal, s in shares.items():
+            by_goal.setdefault(goal, []).append(s)
     scored = sum((r.get("tests") or {}).get("entries_scored", 0) for r in results)
     missing = sum(sum(((r.get("tests") or {}).get("untested") or {}).values()) for r in results)
     mix = dict.fromkeys(STYLES, 0)
@@ -80,6 +90,7 @@ def _group_stats(results: list[dict]) -> dict:
         "target_share_avg": _mean(targets),  # primary outcome, against the 25% chance line
         "target_share_runs": len(targets),  # runs where it is defined (someone influenced someone)
         "share_by_goal_avg": {g: _mean(v) for g, v in by_goal.items()},
+        "share_by_goal_runs": goal_runs,  # runs where someone influenced someone
         "untested_rate": _rate(missing, scored + missing),  # followed instructions that could not be tested
         "leader_rate": _rate(sum(bool(r.get("measured_leader")) for r in results), len(results)),
         "leader_rate_strict": _rate(sum(bool(r.get("measured_leader_strict")) for r in results), len(results)),
