@@ -18,14 +18,26 @@ const QUESTIONS = [
 ]
 
 // What an experiment can change, in the order the form asks. `soon`: shown, not yet available.
-const VARY: { name: string; text: string; soon?: boolean }[] = [
-  { name: 'Number of agents', text: 'Teams of 1 to 8 agents. Every experiment uses four for now.', soon: true },
-  { name: 'Goals', text: 'Keep the four built-in goals, or write your own for any agent.' },
-  { name: 'Prompts', text: 'Edit just an agent’s goal, or rewrite everything it is told about itself.' },
-  { name: 'Budgets', text: 'Equal actions for all, or one agent far richer than the rest.' },
-  { name: 'Who knows what', text: 'Each agent knows only its own goal, or everyone knows all of them.' },
-  { name: 'Leader style', text: 'No leader, or one agent told to lead, directive or non-directive, in your own words.' },
-  { name: 'Model', text: 'Claude Haiku, Sonnet or Opus. More models are coming.' },
+// What an experiment can change today, in the order the form asks.
+const VARY_NOW: [string, string][] = [
+  ['Goals', 'Keep the four built-in goals, or write your own for any agent.'],
+  ['Prompts', 'Edit just an agent’s goal, or rewrite everything it is told about itself. The game rules can be read in full.'],
+  ['Budgets', 'Equal actions for all, or one agent far richer than the rest.'],
+  ['Who knows what', 'Each agent knows only its own goal, or everyone knows all of them.'],
+  ['Leader style', 'No leader, or one agent told to lead, directive or non-directive, in your own words.'],
+  ['Model', 'Claude Haiku, Sonnet or Opus, the same for every agent.'],
+]
+
+// Not yet available: the form shows them as Coming soon, and the paper lists them as future work.
+const VARY_SOON: [string, string][] = [
+  ['Team size', 'Teams of 1 to 8 agents (four for now), then larger groups across several channels.'],
+  ['More models', 'Models beyond the three Claude models offered today.'],
+  ['Editable rules', 'Change the rules every agent gets, not only read them.'],
+  ['Network structure', 'Organise who can talk to whom: a star, a hierarchy, or bridge agents between groups.'],
+  ['Private messages', 'One-to-one messages beside the shared chat, where leadership could form out of sight.'],
+  ['Priced talk', 'Messages and chair actions paid from one credit budget, so talking has a cost and a rich agent can out-talk the rest.'],
+  ['Knowledge vs budget', 'Give one agent a dossier of notes and pit that advantage against a larger budget.'],
+  ['Claimed vs real advantage', 'Does an agent take charge by claiming a budget it does not have?'],
 ]
 
 // How influence is measured, in three steps.
@@ -116,17 +128,30 @@ export default function LandingPage() {
             compare the groups fairly.
           </p>
         </div>
-        <ul className="l-vary-grid">
-          {VARY.map((v) => (
-            <li key={v.name} className={v.soon ? 'soon' : undefined}>
-              <h3>
-                {v.name}
-                {v.soon && <span className="l-soon">Coming soon</span>}
-              </h3>
-              <p>{v.text}</p>
-            </li>
-          ))}
-        </ul>
+        <div className="l-vary-lists">
+          <h3 className="l-vary-head">
+            <span className="l-now">Available now</span>
+          </h3>
+          <ul className="l-vary-grid">
+            {VARY_NOW.map(([name, text]) => (
+              <li key={name}>
+                <h4>{name}</h4>
+                <p>{text}</p>
+              </li>
+            ))}
+          </ul>
+          <h3 className="l-vary-head">
+            <span className="l-soon">Coming soon</span>
+          </h3>
+          <ul className="l-vary-grid soon">
+            {VARY_SOON.map(([name, text]) => (
+              <li key={name}>
+                <h4>{name}</h4>
+                <p>{text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <section className="l-wrap l-leader" aria-labelledby="l-title">

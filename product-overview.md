@@ -270,7 +270,7 @@ Fixed for users, adjustable by admins: how much the model thinks before answerin
 
 ### 6.1 Landing page (no account needed)
 
-- Positioned as a sandbox for research teams: what an experiment can vary, how influence is measured, the Chair Game in four steps, then the original study as an example.
+- Positioned as a sandbox for research teams: what an experiment can vary (available now, and coming soon: team size, more models, editable rules, and the paper's future work: network structure, private messages, priced talk, knowledge vs budget, claimed vs real advantage), how influence is measured, the Chair Game in four steps, then the original study as an example (done at the Apart Swarm hackathon).
 - **Watch a demo run** (hero button) scrolls to a demo run played in place: a random measured run from the demo experiments, with the experiment's setup on top (agents, goals and prompts as dropdowns, knowledge, budget, leader, model). The measurements appear when the replay ends.
 - A **demo gallery** of experiments the team has run and picked. Visitors can open any demo run and watch it in full in the 3D room, with chat and results, without an account or API key.
 - Buttons: **Sign up** and **Log in**.
