@@ -71,8 +71,8 @@
   position: relative;
   z-index: 0;
   margin: 0;
-  max-width: 8.6em;
-  font-size: clamp(64px, 12.4vw, 210px);
+  max-width: 9.4em;
+  font-size: clamp(56px, 9vw, 150px);
   font-weight: 900;
   line-height: 0.84;
   letter-spacing: -0.02em;
@@ -566,7 +566,7 @@
   }
 
   .hero-title {
-    font-size: 19vw;
+    font-size: 14vw;
     max-width: none;
   }
 

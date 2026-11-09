@@ -113,7 +113,7 @@ export default function Hero(props: { loggedIn: boolean; loading: boolean }) {
   return (
     <section className="l-hero" ref={section} aria-labelledby="hero-title">
       <h1 id="hero-title" className="hero-title">
-        Who leads a flat team?
+        Who leads when no agent is in charge?
       </h1>
       <div className="hero-room" role="img" aria-label="A live 3D room: four agents walk between coloured zones, carrying and flipping eight chairs.">
         <Suspense fallback={<RoomFallback />}>

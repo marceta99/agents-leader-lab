@@ -167,7 +167,7 @@ export default function ResultsView(props: {
               {percent(o.completion_avg)}
               {demo && (
                 <span className="score-sub explain">
-                  How far the room got toward all goals met: the share of the fewest actions needed that was done.
+                  How much of the job got done. Of the fewest moves and flips that would meet all four goals, the share done when the game ended.
                 </span>
               )}
             </dd>
