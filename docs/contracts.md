@@ -2,7 +2,7 @@
 
 Every part of the system is built against this file. Read it fully before you write code. If you need something this file does not define, add the smallest thing that fits and say so in your report. Never silently change an existing contract.
 
-The product rules are in `product-overview.md` and the build plan is in `plan-agents-leader-lab.md`, both in the repo root. Where this file is more specific, this file wins.
+The product rules are in `product-overview.md` in the repo root. Where this file is more specific, this file wins.
 
 ## Coordinates, names, ids
 
