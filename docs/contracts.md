@@ -2,7 +2,7 @@
 
 Every part of the system is built against this file. Read it fully before you write code. If you need something this file does not define, add the smallest thing that fits and say so in your report. Never silently change an existing contract.
 
-The product rules are in `product-overview.md` in the repo root. Where this file is more specific, this file wins.
+This file is the source of truth for the API, events and results.
 
 ## Coordinates, names, ids
 
@@ -191,7 +191,7 @@ The frontend rebuilds the full board at any time `t` from the events with `t <= 
 
 ## Run result (`runs.result`, written by measurement, read by the results UI)
 
-Measurement rules: `backend/app/measure/run.py` (docstring) and `product-overview.md` section 4. `measure_version` 2.
+Measurement rules: `backend/app/measure/run.py` (docstring). `measure_version` 2.
 
 ```json
 {

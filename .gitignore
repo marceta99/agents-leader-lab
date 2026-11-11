@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 railway-secrets.local.txt
 plan-*.md
+product-overview.md
